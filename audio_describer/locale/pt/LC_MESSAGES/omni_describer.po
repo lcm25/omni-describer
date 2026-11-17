@@ -2701,3 +2701,21 @@ msgstr "Chave da API:"
 
 msgid "Copy the Pix key to support Descritudo"
 msgstr "Copiar a chave Pix para apoiar o Descritudo"
+
+msgid "&Refresh model list"
+msgstr "&Atualizar lista de modelos"
+
+msgid "Updating voices..."
+msgstr "A atualizar vozes..."
+
+msgid "Updating models..."
+msgstr "A atualizar modelos..."
+
+msgid "%d models found."
+msgstr "%d modelos encontrados."
+
+msgid "Could not update the list."
+msgstr "Não foi possível atualizar a lista."
+
+msgid "Key erased."
+msgstr "Chave apagada."

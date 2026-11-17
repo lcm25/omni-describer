@@ -230,7 +230,7 @@ def fetch_remote_voices(provider_id, api_key, model="", azure_region=""):
     if provider_id == "azure":
         url = requests.azure_base(azure_region) + "/voices/list"
         headers = requests.auth_headers("azure", api_key)
-        payload, _mime = _http_json("GET", url, headers, None)
+        payload, _mime = _http_json("GET", url, headers, None, timeout=20)
         items = json.loads(payload.decode("utf-8", errors="replace"))
         voices = []
         for item in items if isinstance(items, list) else []:
@@ -243,7 +243,7 @@ def fetch_remote_voices(provider_id, api_key, model="", azure_region=""):
     if provider_id == "deepgram":
         return requests.builtin_voices("deepgram", model)
     method, url, headers, body = requests.voice_list_request(provider_id, api_key, model)
-    payload, _mime = _http_json(method, url, headers, body)
+    payload, _mime = _http_json(method, url, headers, body, timeout=20)
     data = json.loads(payload.decode("utf-8", errors="replace"))
     voices = []
     raw_list = []

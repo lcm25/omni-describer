@@ -121,6 +121,8 @@ DEFAULT_SETTINGS = {
     "analysis_model": "",
     "analysis_model_custom": "",
     "analysis_api_keys": {},
+    "cached_analysis_models": {},
+    "cached_narration_models": {},
     "twelvelabs_index_id": "",
     "sapi5_voice_id": None,
     "sapi5_voice_rate_percent": 100,

@@ -2682,3 +2682,21 @@ msgstr "&Copiar chave Pix"
 
 msgid "Pix key copied."
 msgstr "Chave Pix copiada."
+
+msgid "&Refresh model list"
+msgstr "&Atualizar lista de modelos"
+
+msgid "Updating voices..."
+msgstr "Atualizando vozes..."
+
+msgid "Updating models..."
+msgstr "Atualizando modelos..."
+
+msgid "%d models found."
+msgstr "%d modelos encontrados."
+
+msgid "Could not update the list."
+msgstr "Não deu para atualizar a lista."
+
+msgid "Key erased."
+msgstr "Chave apagada."
