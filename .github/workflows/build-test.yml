@@ -59,6 +59,9 @@ jobs:
             if (-not (Test-Path $f)) { throw "Missing bundled runtime: $f" }
           }
 
+      - name: Check the Pix page is unconditional
+        run: python test_installer_pix_page.py
+
       - name: Build app and helpers
         shell: pwsh
         run: |
@@ -189,6 +192,7 @@ jobs:
           Compress-Archive -Path "$portable/*" -DestinationPath $portableZip
           echo "SETUP=$setup" >> $env:GITHUB_ENV
           echo "PORTABLE=$portableZip" >> $env:GITHUB_ENV
+          python installer/scan_for_secrets.py dist $setup $portableZip
 
       - name: Upload installer
         uses: actions/upload-artifact@v4

@@ -161,17 +161,8 @@ Function AoCancelar
 FunctionEnd
 
 Function PaginaApoio
+  ; Sempre visível: instalação, atualização e cópia portátil.
   StrCpy $NaPaginaApoio "0"
-  ${If} $Atualizar == "1"
-    Abort
-  ${EndIf}
-  IfSilent 0 +2
-    Abort
-  ReadRegStr $0 HKCU "Software\${APPNAME}" "ApoioMostrado"
-  ${If} $0 == "1"
-    Abort
-  ${EndIf}
-  WriteRegStr HKCU "Software\${APPNAME}" "ApoioMostrado" "1"
 
   !insertmacro MUI_HEADER_TEXT "Apoie o projeto" "Opcional. Enter ou Esc continuam."
   nsDialogs::Create 1018
@@ -342,6 +333,14 @@ Section "Principal" SecPrincipal
     FileOpen $0 "$INSTDIR\portable.txt" w
     FileWrite $0 "portable$\r$\n"
     FileClose $0
+    ; A cópia portátil não leva as configurações nem as chaves de quem instalou.
+    Delete "$INSTDIR\settings.dat"
+    Delete "$INSTDIR\settings.dat2"
+    Delete "$INSTDIR\settings.dat.json"
+    Delete "$INSTDIR\key.salt"
+    Delete "$INSTDIR\prompts.json"
+    Delete "$INSTDIR\voices.json"
+    RMDir /r "$INSTDIR\Dados"
     DetailPrint "Cópia portátil criada. As configurações ficarão na pasta Dados, ao lado do programa."
     Return
   ${EndIf}

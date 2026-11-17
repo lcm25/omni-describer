@@ -114,12 +114,17 @@ class SettingsDialog(wx.Dialog):
         self.analysis_provider_ids = [item["id"] for item in ANALYSIS_PROVIDERS]
         self.analysis_provider_choice = wx.Choice(self.ai_panel, choices=[analysis_label(item["label"]) for item in ANALYSIS_PROVIDERS])
         ai_grid_sizer.Add(self.analysis_provider_choice, 1, wx.EXPAND|wx.ALL, 5)
-        ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Gemini API Key:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.provider_key_label = wx.StaticText(self.ai_panel, label=_("Gemini API key:"))
+        ai_grid_sizer.Add(self.provider_key_label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.api_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
         ai_grid_sizer.Add(self.api_key_text, 1, wx.EXPAND|wx.ALL, 5)
-        ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("OpenAI API Key (for TTS):")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.clear_key_button = wx.Button(self.ai_panel, label=_("&Erase key"))
+        ai_grid_sizer.Add((0, 0))
+        ai_grid_sizer.Add(self.clear_key_button, 0, wx.ALL, 5)
+        self.openai_key_label = wx.StaticText(self.ai_panel, label=_("OpenAI API Key (for TTS):"))
+        self.openai_key_label.Hide()
         self.openai_api_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
-        ai_grid_sizer.Add(self.openai_api_key_text, 1, wx.EXPAND|wx.ALL, 5)
+        self.openai_api_key_text.Hide()
         ai_grid_sizer.Add(wx.StaticLine(self.ai_panel, style=wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 10); ai_grid_sizer.Add(wx.StaticLine(self.ai_panel, style=wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 10)
         ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Frame Rate for AI Analysis:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.frame_rate_display_choices = [fc[1] for fc in self.FRAME_RATE_CHOICES]; self.frame_rate_internal_values = [fc[0] for fc in self.FRAME_RATE_CHOICES]
@@ -265,7 +270,7 @@ class SettingsDialog(wx.Dialog):
         self.log_level_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.interrupt_speech_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
         self.api_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
-        self.openai_api_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
+        self.clear_key_button.Bind(wx.EVT_BUTTON, self.OnEraseKey)
         self.frame_rate_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.verbosity_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.model_override_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
@@ -308,7 +313,7 @@ class SettingsDialog(wx.Dialog):
         engine_choice = self.TTS_ENGINE_CHOICES[self.tts_engine_choice.GetSelection()][0]
         
         settings = {
-            "openai_api_key": self.openai_api_key_text.GetValue().strip(),
+            "openai_api_key": (getattr(self, "_key_cache", {}) or {}).get("openai", ""),
             "openai_voice_preset": self.openai_voice_choice.GetStringSelection(),
             "openai_tts_model": config_model.get_setting("openai_tts_model"),
             "sapi5_voice_id": self.sapi_voices[self.sapi_voice_choice.GetSelection()]['id'] if self.sapi_voices and self.sapi_voice_choice.GetSelection() != wx.NOT_FOUND else None,
@@ -408,8 +413,7 @@ class SettingsDialog(wx.Dialog):
         self.log_level_choice.SetSelection(self.log_level_internal_values.index(self.current_settings.get("logging_level", "INFO")))
         self.interrupt_speech_checkbox.SetValue(self.current_settings.get("player_allow_speech_interruption", True))
         
-        self.api_key_text.SetValue(self.current_settings.get("user_gemini_api_key", ""))
-        self.openai_api_key_text.SetValue(self.current_settings.get("user_openai_api_key", ""))
+        self._load_provider_keys()
         self.frame_rate_choice.SetSelection(self.frame_rate_internal_values.index(self.current_settings.get("frame_rate_for_ai", 0)))
         self.verbosity_choice.SetSelection(self.verbosity_internal_values.index(self.current_settings.get("gemini_description_verbosity", config.DEFAULT_VERBOSITY)))
         self._load_analysis_controls()
@@ -494,11 +498,14 @@ class SettingsDialog(wx.Dialog):
         provider_id = self.analysis_provider_ids[max(0, self.analysis_provider_choice.GetSelection())]
         custom = self._analysis_selection_is_custom()
         local = provider_id == "local"
-        needs_own_key = provider_id not in ("gemini", "openai", "local")
         self.analysis_custom_label.Show(custom and not local)
         self.model_override_text.Show(custom and not local)
-        self.analysis_key_label.Show(needs_own_key)
-        self.analysis_key_text.Show(needs_own_key)
+        self.analysis_key_label.Hide()
+        self.analysis_key_text.Hide()
+        show_key = not local
+        self.provider_key_label.Show(show_key)
+        self.api_key_text.Show(show_key)
+        self.clear_key_button.Show(show_key)
         self.local_note.Show(local)
         installed = False
         if local:
@@ -520,26 +527,58 @@ class SettingsDialog(wx.Dialog):
         if not selected and self.current_settings.get("gemini_model_override"):
             selected = self._analysis_custom_id
         self._fill_analysis_models(provider_id, selected)
-        keys = self.current_settings.get("analysis_api_keys") or {}
-        self.analysis_key_text.SetValue(keys.get(provider_id, "") if isinstance(keys, dict) else "")
+        self._shown_provider = provider_id
+        self._show_provider_key(provider_id)
+
+    def _load_provider_keys(self):
+        from ..core.analysis_settings import provider_ids, read_key
+        self._key_cache = {provider_id: read_key(self.current_settings, provider_id) for provider_id in provider_ids()}
+
+    def _provider_key_label(self, provider_id):
+        labels = {
+            "gemini": _("Gemini API key:"),
+            "openai": _("OpenAI API key:"),
+            "xai": _("xAI API key:"),
+            "anthropic": _("Anthropic API key:"),
+            "qwen": _("Qwen API key:"),
+            "openrouter": _("OpenRouter API key:"),
+        }
+        return labels.get(provider_id, _("API key:"))
+
+    def _show_provider_key(self, provider_id):
+        self.provider_key_label.SetLabel(self._provider_key_label(provider_id))
+        self.api_key_text.ChangeValue(self._key_cache.get(provider_id, ""))
+
+    def _remember_provider_key(self):
+        provider_id = getattr(self, "_shown_provider", None)
+        if not provider_id or not hasattr(self, "_key_cache"):
+            return
+        self._key_cache[provider_id] = self.api_key_text.GetValue().strip()
 
     def _save_analysis_controls(self):
+        from ..core.analysis_settings import write_key
+        self._remember_provider_key()
         provider_id = self.analysis_provider_ids[self.analysis_provider_choice.GetSelection()]
         self.current_settings["analysis_provider"] = provider_id
         model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
         self.current_settings["analysis_model"] = model_id
         self.current_settings["analysis_model_custom"] = self.model_override_text.GetValue().strip()
-        keys = dict(self.current_settings.get("analysis_api_keys") or {})
-        keys[provider_id] = self.analysis_key_text.GetValue().strip()
-        self.current_settings["analysis_api_keys"] = keys
+        for saved_id, value in self._key_cache.items():
+            write_key(self.current_settings, saved_id, value)
+
+    def OnEraseKey(self, event):
+        provider_id = getattr(self, "_shown_provider", None)
+        self.api_key_text.ChangeValue("")
+        if provider_id and hasattr(self, "_key_cache"):
+            self._key_cache[provider_id] = ""
+        self.OnSettingChanged(event)
 
     def OnAnalysisProviderChanged(self, event):
+        self._remember_provider_key()
         provider_id = self.analysis_provider_ids[self.analysis_provider_choice.GetSelection()]
+        self._shown_provider = provider_id
+        self._show_provider_key(provider_id)
         self._fill_analysis_models(provider_id)
-        if provider_id == "local" and self.local_download_button.IsShown():
-            self.local_download_button.SetFocus()
-        else:
-            self.analysis_model_choice.SetFocus()
         self.OnSettingChanged(event)
 
     def OnDownloadLocal(self, event):
@@ -680,10 +719,9 @@ class SettingsDialog(wx.Dialog):
         provider_id = self._narration_provider_id()
         self._save_narration_controls()
         key = self.narration_key_text.GetValue().strip()
-        if provider_id == "gemini":
-            key = self.api_key_text.GetValue().strip()
-        elif provider_id == "openai":
-            key = self.openai_api_key_text.GetValue().strip()
+        if provider_id in ("gemini", "openai"):
+            self._remember_provider_key()
+            key = self._key_cache.get(provider_id, key)
         model = self._narration_model_ids[max(0, self.narration_model_choice.GetSelection())]
         try:
             voices = fetch_remote_voices(provider_id, key, model, self.azure_region_text.GetValue().strip())
@@ -725,8 +763,6 @@ class SettingsDialog(wx.Dialog):
         self.current_settings["logging_level"] = self.log_level_internal_values[self.log_level_choice.GetSelection()]
         self.current_settings["player_allow_speech_interruption"] = self.interrupt_speech_checkbox.IsChecked()
         
-        self.current_settings["user_gemini_api_key"] = self.api_key_text.GetValue().strip()
-        self.current_settings["user_openai_api_key"] = self.openai_api_key_text.GetValue().strip()
         self.current_settings["frame_rate_for_ai"] = self.frame_rate_internal_values[self.frame_rate_choice.GetSelection()]
         self.current_settings["gemini_description_verbosity"] = self.verbosity_internal_values[self.verbosity_choice.GetSelection()]
         self._save_analysis_controls()

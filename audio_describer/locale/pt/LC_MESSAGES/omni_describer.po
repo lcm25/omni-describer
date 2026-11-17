@@ -2659,3 +2659,45 @@ msgstr "Local (neste computador, sem internet)"
 
 msgid "Descritudo could not open.\n\n%s\n\nThe log is at:\n%s"
 msgstr "O Descritudo não abriu.\n\n%s\n\nO registo está em:\n%s"
+
+msgid "Descritudo is free. Any amount helps."
+msgstr "O Descritudo é gratuito. Qualquer valor ajuda."
+
+msgid "Support Descritudo (&Pix)..."
+msgstr "Apoiar o Descritudo (&Pix)..."
+
+msgid "Support Descritudo (Pix)"
+msgstr "Apoiar o Descritudo (Pix)"
+
+msgid "&Copy Pix key"
+msgstr "&Copiar chave Pix"
+
+msgid "Pix key copied."
+msgstr "Chave Pix copiada."
+
+msgid "&Erase key"
+msgstr "&Apagar chave"
+
+msgid "Gemini API key:"
+msgstr "Chave da API do Gemini:"
+
+msgid "OpenAI API key:"
+msgstr "Chave da API da OpenAI:"
+
+msgid "xAI API key:"
+msgstr "Chave da API da xAI:"
+
+msgid "Anthropic API key:"
+msgstr "Chave da API da Anthropic:"
+
+msgid "Qwen API key:"
+msgstr "Chave da API da Qwen:"
+
+msgid "OpenRouter API key:"
+msgstr "Chave da API da OpenRouter:"
+
+msgid "API key:"
+msgstr "Chave da API:"
+
+msgid "Copy the Pix key to support Descritudo"
+msgstr "Copiar a chave Pix para apoiar o Descritudo"

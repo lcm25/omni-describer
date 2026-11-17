@@ -168,16 +168,17 @@ def check_catalog():
         "main": [
             "&File", "&Help", "&Local Video File", "Describe a photo or &sticker",
             "Direct Video &URL",
-            "&YouTube Video URL", "Open &Web Platform", "&Settings...", "E&xit",
+            "&YouTube Video URL", "&Settings...", "E&xit",
         ],
         "file_menu": [
             "&Open Local File...\tCtrl+O", "Describe clipboard &image\tCtrl+Shift+V",
             "Open Video from &URL...\tCtrl+U",
             "Open from &YouTube...\tCtrl+Y", "Manage &Prompt Presets...",
-            "Open &Web Platform...\tCtrl+W", "&Settings...\tCtrl+,", "E&xit\tAlt+F4",
+            "&Settings...\tCtrl+,", "E&xit\tAlt+F4",
         ],
         "help_menu": [
-            "&View Help\tF1", "&Changelog", "Co&ntributors", "View &License", "&About...",
+            "&View Help\tF1", "&Changelog", "Co&ntributors", "View &License",
+            "Support Descritudo (&Pix)...", "&About...",
         ],
         "ask_more": ["&Submit Question", "&Add to Descriptions"],
         "edit": ["&Add New...", "&Delete", "&Save Changes"],
@@ -196,8 +197,9 @@ def check_help_and_wxstd():
     assert DOC_PATH.is_file(), DOC_PATH
     help_html = DOC_PATH.read_text(encoding="utf-8")
     assert 'lang="pt-BR"' in help_html
-    assert "studio.binclusive.io" in help_html
-    assert "info@audioses.com" in help_html
+    assert "studio.binclusive.io" not in help_html
+    assert "audioses.com" not in help_html
+    assert "Draqoken" in help_html
     for word in ("você", "arquivo", "tela", "salvar", "baixar"):
         assert word in help_html.lower(), word
     wxstd = LOCALE / "pt_BR" / "LC_MESSAGES" / "wxstd.mo"

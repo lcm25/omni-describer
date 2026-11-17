@@ -149,8 +149,6 @@ class MainWindow(wx.Frame):
         file_menu.AppendSeparator()
         self.menu_manage_prompts = file_menu.Append(wx.ID_ANY, _("Manage &Prompt Presets..."), _("Add, edit, or delete custom prompt presets"))
         file_menu.AppendSeparator()
-        self.menu_webapp = file_menu.Append(wx.ID_ANY, _("Open &Web Platform...\tCtrl+W"), _("Open the Omni Describer web platform in your browser"))
-        file_menu.AppendSeparator()
         self.menu_settings = file_menu.Append(wx.ID_PREFERENCES, _("&Settings...\tCtrl+,"), _("Configure application settings"))
         file_menu.AppendSeparator()
         self.menu_exit = file_menu.Append(wx.ID_EXIT, _("E&xit\tAlt+F4"), _("Exit the application"))
@@ -161,6 +159,7 @@ class MainWindow(wx.Frame):
         self.menu_changelog = help_menu.Append(wx.ID_ANY, _("&Changelog"), _("View the application's changelog"))
         self.menu_contributors = help_menu.Append(wx.ID_ANY, _("Co&ntributors"), _("View the list of contributors"))
         self.menu_license = help_menu.Append(wx.ID_ANY, _("View &License"), _("View the application's license agreement"))
+        self.menu_pix = help_menu.Append(wx.ID_ANY, _("Support Descritudo (&Pix)..."), _("Copy the Pix key to support Descritudo"))
         help_menu.AppendSeparator()
         self.menu_about = help_menu.Append(wx.ID_ABOUT, _("&About..."), _("About %s") % full_app_display_name)
         menu_bar.Append(help_menu, _("&Help"))
@@ -238,13 +237,13 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open_url, self.menu_open_url)
         self.Bind(wx.EVT_MENU, self.on_open_youtube, self.menu_open_youtube)
         self.Bind(wx.EVT_MENU, self.on_manage_prompts, self.menu_manage_prompts)
-        self.Bind(wx.EVT_MENU, self.on_open_webapp, self.menu_webapp)
         self.Bind(wx.EVT_MENU, self.on_settings, self.menu_settings)
         self.Bind(wx.EVT_MENU, self.on_exit, self.menu_exit)
         self.Bind(wx.EVT_MENU, self.on_help, self.menu_help)
         self.Bind(wx.EVT_MENU, self.on_open_changelog, self.menu_changelog)
         self.Bind(wx.EVT_MENU, self.on_open_contributors, self.menu_contributors)
         self.Bind(wx.EVT_MENU, self.on_open_license, self.menu_license)
+        self.Bind(wx.EVT_MENU, self.on_pix, self.menu_pix)
         self.Bind(wx.EVT_MENU, self.on_about, self.menu_about)
         self.btn_local_file.Bind(wx.EVT_BUTTON, self.on_open_local_file)
         self.btn_photo.Bind(wx.EVT_BUTTON, self.on_open_photo)
@@ -630,11 +629,9 @@ class MainWindow(wx.Frame):
             self.log_to_ui(f"Error opening doc file '{filename}': {e}")
             app_logger.error(f"Failed to open document '{filename}': {e}", exc_info=True)
 
-    def on_open_webapp(self, event):
-        try:
-            webbrowser.open(config.WEBAPP_URL)
-        except Exception as e:
-            app_logger.error(f"Failed to open webapp URL: {e}", exc_info=True)
+    def on_pix(self, event):
+        with PixSupportDialog(self) as dialog:
+            dialog.ShowModal()
 
     def on_help(self, event): self._open_doc_file("help.html")
     def on_open_changelog(self, event): self._open_doc_file("changes.txt")
@@ -677,17 +674,7 @@ class AboutDialog(wx.Dialog):
         panel_sizer.Add(desc_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
         credit_text = wx.StaticText(panel, label=_("Based on Omni Describer, created by Draqoken (audioses), MIT license."))
         panel_sizer.Add(credit_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        
-        contact_website_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        contact_label = wx.StaticText(panel, label=_("Contact:"))
-        contact_website_sizer.Add(contact_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        contact_email_text = wx.StaticText(panel, label=config.CONTACT_EMAIL)
-        contact_website_sizer.Add(contact_email_text, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        contact_website_sizer.AddStretchSpacer(1)
-        self.website_button = wx.Button(panel, label=_("Visit Website"))
-        contact_website_sizer.Add(self.website_button, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        panel_sizer.Add(contact_website_sizer, 0, wx.EXPAND | wx.ALL, 10)
-        
+
         panel.SetSizer(panel_sizer)
         dialog_sizer.Add(panel, 1, wx.EXPAND)
         
@@ -698,10 +685,31 @@ class AboutDialog(wx.Dialog):
 
         self.SetSizerAndFit(dialog_sizer)
         self.CentreOnParent()
-        self.website_button.Bind(wx.EVT_BUTTON, self.on_visit_website)
 
-    def on_visit_website(self, event):
-        try:
-            webbrowser.open(config.WEBSITE_URL)
-        except Exception as e:
-            app_logger.error(f"Failed to open website URL '{config.WEBSITE_URL}': {e}", exc_info=True)
+
+class PixSupportDialog(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent, title=_("Support Descritudo (Pix)"))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        text = wx.StaticText(self, label=_("Descritudo is free. Any amount helps."))
+        sizer.Add(text, 0, wx.ALL, 12)
+        self.copy_button = wx.Button(self, label=_("&Copy Pix key"))
+        sizer.Add(self.copy_button, 0, wx.ALL, 8)
+        close = wx.Button(self, wx.ID_CANCEL, _("Close"))
+        sizer.Add(close, 0, wx.ALL, 8)
+        self.SetSizerAndFit(sizer)
+        self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+        wx.CallAfter(self.copy_button.SetFocus)
+
+    def on_key(self, event):
+        if event.GetKeyCode() == wx.WXK_ESCAPE:
+            self.EndModal(wx.ID_CANCEL)
+            return
+        event.Skip()
+
+    def on_copy(self, event):
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject("+5521977425383"))
+            wx.TheClipboard.Close()
+        speak_message(_("Pix key copied."))
