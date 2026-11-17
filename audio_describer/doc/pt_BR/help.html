@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni Describer - Guia do usuário</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.7;
+            padding: 2em;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #aed6f1;
+            padding-bottom: 10px;
+        }
+        h1 { font-size: 2.8em; text-align: center; border-bottom: none; letter-spacing: -1px; }
+        h2 { font-size: 2.2em; margin-top: 2em; }
+        h3 { font-size: 1.6em; border-bottom: 1px solid #dee2e6; }
+        code {
+            background-color: #e8f6f3;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-family: "Courier New", Courier, monospace;
+            color: #117a65;
+        }
+        .container {
+            background-color: #fff;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .key {
+            display: inline-block;
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.9em;
+            box-shadow: 1px 1px 1px #adb5bd;
+            margin: 0 2px;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 5px;
+        }
+        .note strong { color: #856404; }
+        .best-practice {
+            background-color: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 5px;
+        }
+        .best-practice strong { color: #155724; }
+        .backstory {
+            background-color: #eaf2f8;
+            border-left: 5px solid #3498db;
+            padding: 1.5em;
+            margin: 2em 0;
+            border-radius: 8px;
+            font-style: italic;
+        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 0.8em; }
+        a { color: #2980b9; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Guia do usuário do Omni Describer</h1>
+        <p style="text-align: center; font-size: 1.1em; color: #566573;">Dando voz ao mundo visual com IA.</p>
+
+        <div class="note">
+            <strong>Aviso importante:</strong> o Omni Describer passou a ter uma plataforma web. O aplicativo para computador está em modo de manutenção. Os recursos novos e as melhorias estão na versão web, em <a href="https://studio.binclusive.io">studio.binclusive.io</a>. A plataforma web não precisa de instalação nem de chave de API e funciona em todos os aparelhos, inclusive Mac e celular. O aplicativo para computador continua disponível para quem preferir usá-lo.
+        </div>
+
+        <div class="backstory">
+            <p>Tudo começou com o meu amor por filmes. Quando percebi quantos detalhes das minhas cenas favoritas se perdiam sem uma boa audiodescrição, surgiu uma ideia: “Será que a IA não pode facilitar isso para a gente?” Eu sonhava com uma ferramenta que não só gerasse descrições, mas também deixasse o controle inteiro com a pessoa que assiste. Depois de meses de trabalho intenso, muitas tentativas e vários obstáculos técnicos, desenvolvi o Omni Describer como resultado desse sonho.</p>
+        </div>
+
+        <h2>Sumário</h2>
+        <ul>
+            <li><a href="#whatis">O que há no nome?</a></li>
+            <li><a href="#requirements">Requisitos do sistema</a></li>
+            <li><a href="#setup">Primeiros passos: configurar suas chaves de API</a></li>
+            <li><a href="#quickstart">Início rápido: gerar sua primeira descrição</a></li>
+            <li><a href="#features">Principais recursos</a>
+                <ul>
+                    <li><a href="#player">O reprodutor de vídeo descrito</a></li>
+                    <li><a href="#editing">Editar descrições: o poder de refinar</a></li>
+                    <li><a href="#prompts">Gerenciar predefinições de prompt</a></li>
+                    <li><a href="#askmore">Perguntar mais sobre a cena</a></li>
+                    <li><a href="#explorer">Explorador de cena</a></li>
+                    <li><a href="#exporting">Exportar o seu trabalho</a></li>
+                </ul>
+            </li>
+            <li><a href="#advanced-settings">Um olhar detalhado nas configurações</a></li>
+            <li><a href="#bestpractices">Dicas para obter os melhores resultados</a></li>
+            <li><a href="#faq">Perguntas frequentes</a></li>
+            <li><a href="#shortcuts">Atalhos de teclado</a></li>
+            <li><a href="#contact">Agradecimentos, contato e colaboradores</a></li>
+        </ul>
+
+        <h2 id="whatis">O que há no nome?</h2>
+        <p>“Omni” vem do latim e significa “tudo”. Escolhi esse nome porque não queria que a ferramenta servisse a um único propósito. Sim, o Omni Describer existe sobretudo para tornar a mídia acessível a pessoas cegas e com baixa visão, criando audiodescrições. Mas o propósito não se limita a isso.</p>
+        <p>Este também é um <strong>instrumento de exploração</strong>. Uma crítica de cinema, um estudante, um artista ou qualquer pessoa curiosa sobre detalhes visuais pode usar recursos como o “Explorador de cena” ou o “Perguntar mais” para entrar nas camadas de um vídeo como nunca antes. O Omni Describer é uma janela para ver o mundo pelos “olhos” da IA e entendê-lo de outro jeito. Em resumo, é “um descritor de tudo, para todas as pessoas”.</p>
+
+        <h2 id="requirements">Requisitos do sistema</h2>
+        <p>Para obter o melhor desempenho do Omni Describer, recomendo atender a estes requisitos mínimos:</p>
+        <ul>
+            <li><strong>Sistema operacional:</strong> Windows 10 ou mais recente (64 bits).</li>
+            <li><strong>Memória (RAM):</strong> pelo menos 4 GB de RAM.</li>
+            <li><strong>Armazenamento:</strong> pelo menos 500 MB livres para o aplicativo e os arquivos temporários.</li>
+            <li><strong>Conexão com a internet:</strong> é preciso estar conectado para falar com os serviços de IA (Google Gemini, OpenAI) e para baixar vídeos.</li>
+            <li><strong>Leitor de tela:</strong> para acessibilidade completa, recomenda-se um leitor de tela como JAWS, NVDA ou Narrador do Windows.</li>
+        </ul>
+
+        <h2 id="setup">Primeiros passos: configurar suas chaves de API</h2>
+        <p>O Omni Describer usa serviços de IA na nuvem para analisar o vídeo e dar voz às descrições. Por isso, você precisa informar as suas próprias chaves de API antes de começar.</p>
+        <ol>
+            <li><strong>Abra as configurações:</strong> vá ao menu <strong>Arquivo</strong> e escolha <strong>Configurações...</strong> (ou pressione <span class="key">Ctrl</span> + <span class="key">,</span>).</li>
+            <li><strong>Guia Configurações de IA:</strong>
+                <ul>
+                    <li><strong>Chave de API do Gemini:</strong> obrigatória para a análise do vídeo. Cole a chave no campo “Chave de API do Gemini:”. Você pode obter uma chave gratuita no <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</li>
+                    <li><strong>Chave de API da OpenAI (para a fala):</strong> necessária para a síntese de fala de alta qualidade. Cole a chave neste campo. Sem ela, você ainda pode usar as vozes do Windows, mas a OpenAI é recomendada para o melhor resultado. A chave fica na <a href="https://platform.openai.com/api-keys" target="_blank">plataforma da OpenAI</a>.</li>
+                </ul>
+            </li>
+            <li><strong>Salvar:</strong> clique em <strong>Aplicar</strong> ou <strong>OK</strong> para salvar as configurações. Pronto para usar.</li>
+        </ol>
+        <div class="note">
+            <strong>Armazenamento seguro:</strong> suas chaves de API são criptografadas e ficam no arquivo de configurações do seu computador. Elas só são enviadas diretamente aos serviços de IA correspondentes.
+        </div>
+
+        <h2 id="quickstart">Início rápido: gerar sua primeira descrição</h2>
+        <p>Vamos começar. Siga estes passos:</p>
+        <ol>
+            <li><strong>Escolha um vídeo:</strong> clique em um botão como “Arquivo de vídeo local” na janela principal, ou escolha a origem do vídeo no menu Arquivo.</li>
+            <li><strong>Escolha um prompt (opcional):</strong> a lista traz instruções prontas que orientam a IA. Na primeira vez, deixar “(Nenhuma predefinição selecionada)” é um bom começo.</li>
+            <li><strong>O processamento começa:</strong> o aplicativo passa a analisar o vídeo. Você acompanha o andamento no “Registro de status”, na parte de baixo da janela. Pode levar alguns minutos, conforme a duração do vídeo.</li>
+        </ol>
+        <p>Quando o processo terminar, o <strong>Reprodutor de vídeo descrito</strong> abre sozinho e você pode começar a assistir ao vídeo recém-descrito.</p>
+
+        <h2 id="features">Principais recursos</h2>
+
+        <h3 id="player">O reprodutor de vídeo descrito</h3>
+        <p>Este é o seu cinema descrito. Enquanto o vídeo passa, o <strong>leitor de tela instalado</strong> (como JAWS ou NVDA) lê as audiodescrições geradas no momento certo.</p>
+        <ul>
+            <li><strong>Controles de reprodução:</strong> use Reproduzir/Pausar, Retroceder/Avançar ou o controle de progresso para navegar no vídeo.</li>
+            <li><strong>Área da descrição atual:</strong> aqui você acompanha o texto da descrição que está valendo agora.</li>
+            <li><strong>Editar e refinar:</strong> clique em “Editar descrições...” para abrir um editor com controle total do projeto.</li>
+            <li><strong>Uso de tokens da IA:</strong> esta área mostra quantos “tokens” de IA foram usados, para você acompanhar o consumo da API.</li>
+        </ul>
+
+        <h3 id="editing">Editar descrições: o poder de refinar</h3>
+        <p>A IA oferece um ótimo ponto de partida, mas a qualidade de verdade vem do refinamento. O botão “Editar descrições...” no reprodutor abre um editor com controle sobre cada parte do projeto.</p>
+        <ul>
+            <li><strong>Escolher e modificar:</strong> escolha qualquer descrição na lista do topo para carregar os detalhes no editor.</li>
+            <li><strong>Ajustar os tempos:</strong> edite os campos <code>Tempo inicial</code> e <code>Tempo final</code>. Quando você muda o tempo inicial, o final se desloca para manter a duração da descrição. Os tempos são validados para ficarem dentro do vídeo.</li>
+            <li><strong>Reescrever o texto:</strong> edite livremente o texto da descrição para ganhar clareza, acrescentar detalhe ou corrigir um erro.</li>
+            <li><strong>Adicionar descrições:</strong> clique em “Adicionar...” para abrir um diálogo simples e criar uma descrição nova, com tempo e texto.</li>
+            <li><strong>Excluir descrições:</strong> selecione uma descrição e clique em “Excluir” para removê-la de vez.</li>
+        </ul>
+        <div class="note">
+            <strong>Salvar o trabalho:</strong> as mudanças no editor (adicionar, excluir, modificar) entram na sessão atual na hora. Quando terminar, clique em “Fechar” para voltar ao reprodutor. A lista atualizada será usada na reprodução e nas exportações seguintes.
+        </div>
+
+        <h3 id="prompts">Gerenciar predefinições de prompt</h3>
+        <p>Prompts são instruções que decidem o foco da IA. Ao mudar o prompt, você obtém descrições em estilos bem diferentes.</p>
+        <ul>
+            <li><strong>Escolher uma predefinição:</strong> antes de processar um vídeo, escolha uma predefinição na lista da janela principal.</li>
+            <li><strong>Gerenciar predefinições:</strong> vá em <strong>Arquivo -&gt; Gerenciar predefinições de prompt...</strong>. Ali você pode adicionar, editar ou excluir prompts próprios. Serve para salvar instruções que você usa sempre.</li>
+            <li><strong>Por idioma:</strong> as predefinições ficam separadas para cada idioma escolhido nas configurações.</li>
+        </ul>
+
+        <h3 id="askmore">Perguntar mais sobre a cena</h3>
+        <p>Quer saber o que um personagem está segurando, ou o que diz uma placa ao fundo? Este recurso deixa você perguntar o que quiser sobre a cena.</p>
+        <ol>
+            <li>Pause o vídeo no momento que despertou a curiosidade.</li>
+            <li>Clique no botão <strong>Perguntar mais...</strong>.</li>
+            <li>Digite a pergunta no campo “Sua nova pergunta:” (por exemplo, “De que cor é o chapéu da mulher?” ou “O que está escrito na parede?”).</li>
+            <li>Escolha quantos segundos de vídeo a IA deve analisar em torno do tempo atual.</li>
+            <li>Clique em “Enviar pergunta”. A resposta da IA aparece na área “Histórico da conversa”.</li>
+        </ol>
+
+        <h3 id="explorer">Explorador de cena</h3>
+        <p>O Explorador de cena é um jeito interativo de entender a disposição espacial de uma cena. Ele coloca você numa sala virtual que se navega pelo teclado.</p>
+        <ol>
+            <li>Pause o vídeo na cena que você quer explorar em detalhe.</li>
+            <li>Clique em <strong>Explorar cena...</strong> e depois em “Analisar cena”.</li>
+        </ol>
+        <p>Você está no Explorador de cena. Use o teclado para explorar:</p>
+        <ul>
+            <li><span class="key">Setas</span>: movem a sua posição virtual numa grade.</li>
+            <li><span class="key">D</span>: lê uma descrição detalhada do conjunto da cena.</li>
+            <li><span class="key">L</span>: anuncia a lista de todos os objetos da cena.</li>
+            <li><span class="key">Shift</span> + <span class="key">L</span>: entra no “modo de salto” para escolher um objeto e ir direto até ele.</li>
+            <li><span class="key">Enter</span>: lê uma descrição detalhada do objeto mais próximo.</li>
+            <li><span class="key">Escape</span>: fecha o Explorador de cena.</li>
+        </ul>
+
+        <h3 id="exporting">Exportar o seu trabalho</h3>
+        <p>Quando as descrições estiverem do seu jeito, você pode exportá-las a partir da janela do reprodutor, em formatos diferentes:</p>
+        <ul>
+            <li><strong>Exportar para .TXT:</strong> um arquivo de texto simples com as descrições.</li>
+            <li><strong>Exportar para .SRT:</strong> um arquivo de legenda padrão, que você pode usar em reprodutores como o VLC.</li>
+            <li><strong>Exportar áudio (MP3):</strong> talvez o recurso mais interessante. Ele dá voz às descrições com a voz escolhida nas configurações (SAPI5 ou OpenAI), mistura com o áudio original do vídeo e baixa o som de fundo durante as descrições, gerando um arquivo MP3 que você pode ouvir em qualquer lugar.</li>
+        </ul>
+
+        <h2 id="advanced-settings">Um olhar detalhado nas configurações</h2>
+        <p>A janela de configurações (<span class="key">Ctrl</span> + <span class="key">,</span>) dá um controle fino sobre o comportamento do Omni Describer.</p>
+
+        <h3>Guia Geral</h3>
+        <ul>
+            <li><strong>Permitir que uma descrição interrompa a fala atual:</strong> quando marcado, uma descrição nova começa a ser lida na hora, mesmo que a anterior não tenha terminado. Desmarque para cada descrição terminar antes da próxima. Útil em cenas muito rápidas.</li>
+        </ul>
+
+        <h3>Guia Configurações de IA</h3>
+        <ul>
+            <li><strong>Taxa de quadros para análise da IA:</strong> define quantos quadros de vídeo por segundo são enviados à IA. Um valor menor (por exemplo, 5 quadros/s) reduz bastante o custo da API e ajuda a evitar limites de processamento, mas a IA pode perder ações muito rápidas.</li>
+            <li><strong>Dividir vídeos longos em trechos:</strong> em vídeos longos (mais de 10 a 15 minutos), a IA às vezes fica sem capacidade de processamento. Este recurso divide o vídeo em partes menores, analisa uma de cada vez e junta os resultados. É muito recomendado para conteúdos longos.</li>
+            <li><strong>Desativar filtros de segurança (use com cuidado):</strong> esta opção pode permitir que a IA processe conteúdo que ela normalmente marcaria como sensível. Não é uma anulação absoluta. A saída continua sujeita às políticas centrais de segurança do provedor. Você é responsável pelo uso deste recurso.</li>
+        </ul>
+
+        <h3>Guia Saída de áudio</h3>
+        <ul>
+            <li><strong>Mecanismo de síntese de fala:</strong>
+                <ul>
+                    <li><strong>SAPI5 (incluso no Windows):</strong> usa vozes que vêm com o Windows ou que você instalou. Não exige outra chave de API. O aplicativo alcança tanto as vozes modernas de 64 bits quanto as vozes antigas de 32 bits. Se você tem vozes favoritas de sistemas anteriores, a opção “SAPI5 (vozes de 32 bits)” permite usá-las.</li>
+                    <li><strong>Fala da OpenAI (alta qualidade):</strong> produz vozes mais naturais e fluentes. Exige uma conta paga da OpenAI e uma chave de API. Você pode criar e gerenciar predefinições de voz da OpenAI.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2 id="bestpractices">Dicas para obter os melhores resultados</h2>
+        <p>Criar uma boa audiodescrição é uma arte. A IA é uma assistente eficaz, e o melhor resultado aparece quando você a orienta bem.</p>
+
+        <h3>O poder dos prompts: as suas anotações de direção</h3>
+        <div class="note">
+            O aplicativo ensina à IA um conjunto de <strong>regras centrais</strong> (por exemplo, não falar por cima do diálogo). Pense na área de <strong>predefinição de prompt</strong> da tela principal como o lugar das suas <strong>anotações de direção</strong> para aquele vídeo. Uma boa anotação ajuda a IA a focar num estilo ou num detalhe.
+        </div>
+
+        <div class="best-practice">
+            <strong>Dica: o prompt “Foco nos nomes”</strong><br>
+            Num vídeo com muitos personagens, você pode criar um prompt para priorizar os nomes:
+            <code>Sua maior prioridade neste vídeo é identificar e usar os nomes corretos dos personagens assim que eles forem ditos.</code>
+        </div>
+
+        <div class="best-practice">
+            <strong>Dica: o prompt “Descreva a atmosfera”</strong><br>
+            Em filmes visualmente ricos, oriente a IA a olhar o ambiente:
+            <code>Foque em descrever o cenário, a atmosfera e os detalhes do ambiente. Mencione a luz, as cores e o clima geral da cena.</code>
+        </div>
+
+        <h4>O que evitar nos prompts</h4>
+        <p>Evite instruções que contradigam os princípios centrais da IA (descrever só o que se vê, sem falar por cima do diálogo). Uma instrução ruim pode piorar o resultado.</p>
+        <ul>
+            <li><strong>Prompt ruim:</strong> <code>"Me conte tudo o que acontece."</code> Isso é vago demais e pode fazer a IA descrever detalhes sem importância.</li>
+            <li><strong>Prompt ruim:</strong> <code>"Me diga o que os personagens estão falando."</code> Isso quebra a regra de descrever só o visual.</li>
+        </ul>
+        <p>Em resumo: use o prompt para orientar o foco da IA, não para mudar as regras fundamentais de uma boa audiodescrição.</p>
+
+        <h2 id="faq">Perguntas frequentes</h2>
+        <p><strong>P: Minhas chaves de API não funcionam. O que eu faço?</strong><br>
+        R: Primeiro, confira se você copiou a chave inteira. Na OpenAI, é preciso ter uma forma de pagamento na conta, porque o serviço de fala não é gratuito. No Gemini, confira se a API está ativada no projeto do Google Cloud.</p>
+
+        <p><strong>P: O processo falhou com o erro "MAX_TOKENS". O que isso significa?</strong><br>
+        R: O vídeo é longo ou visualmente complexo demais para a IA processar de uma vez. É um limite de capacidade, não um erro de conteúdo. A melhor saída é ir em <strong>Configurações -&gt; Configurações de IA</strong> e marcar <strong>"Dividir vídeos longos em trechos"</strong>. O vídeo será dividido em partes menores para a IA.</p>
+
+        <p><strong>P: A IA não gerou descrições por causa dos "filtros de segurança". O que posso fazer?</strong><br>
+        R: É um problema conhecido: o sistema de segurança da IA às vezes é cauteloso demais. Tente, nesta ordem: 1) Vá em <strong>Configurações -&gt; Configurações de IA</strong> e marque <strong>"Desativar filtros de segurança"</strong> (isso costuma ajudar). 2) Se não resolver, reduza a "Taxa de quadros para análise da IA" para enviar menos dados. 3) Como último recurso, use "Substituir modelo do Gemini" e digite <code>gemini-2.5-pro</code>. Esse modelo é mais potente e pode lidar melhor com conteúdo sensível, mas é mais lento e pode custar mais se você estiver num plano pago.</p>
+
+        <p><strong>P: Algumas das minhas vozes antigas sumiram da lista do SAPI5. Para onde foram?</strong><br>
+        R: O Windows atual é de 64 bits, mas muitas vozes clássicas de síntese de fala eram de 32 bits. Nas configurações, na guia "Saída de áudio", há opções separadas para "SAPI5 (64 bits)" e "SAPI5 (32 bits)". Para usar as vozes antigas, escolha o mecanismo de 32 bits.</p>
+
+        <p><strong>P: Por que gerar descrições demora tanto?</strong><br>
+        R: O tempo depende da duração do vídeo, da velocidade da internet (para o envio à IA), da taxa de quadros escolhida e da carga atual dos serviços de IA. Dividir o vídeo em trechos é muito recomendado para vídeos longos.</p>
+
+        <h2 id="shortcuts">Atalhos de teclado</h2>
+        <ul>
+            <li><span class="key">Ctrl</span> + <span class="key">O</span>: abrir vídeo local</li>
+            <li><span class="key">Ctrl</span> + <span class="key">U</span>: abrir por URL direta</li>
+            <li><span class="key">Ctrl</span> + <span class="key">Y</span>: abrir do YouTube</li>
+            <li><span class="key">Ctrl</span> + <span class="key">,</span>: abrir configurações</li>
+            <li><span class="key">F1</span>: ver a ajuda</li>
+        </ul>
+
+        <h2 id="contact">Agradecimentos, contato e colaboradores</h2>
+        <p>Muito obrigado por usar o Omni Describer. Este aplicativo reflete o meu desejo de tornar a mídia visual mais acessível e agradável para todas as pessoas. Ter usuários como você, usando a ferramenta e enviando retorno, é a maior motivação para continuar desenvolvendo.</p>
+
+        <h3>Retorno e suporte</h3>
+        <p>Você tem uma pergunta, um relato de erro ou uma ideia de recurso novo? Quero muito saber. O melhor caminho é o e-mail. O seu retorno é precioso para deixar o Omni Describer ainda melhor.</p>
+        <ul>
+            <li><strong>E-mail:</strong> <a href="mailto:info@audioses.com">info@audioses.com</a></li>
+            <li><strong>Site:</strong> <a href="https://audioses.com" target="_blank">audioses.com</a></li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -36,7 +36,9 @@ class ExportOptionsDialog(wx.Dialog):
         
         button_sizer = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         ok_button = self.FindWindowById(wx.ID_OK)
-        ok_button.SetLabel(_("&Continue"))
+        # Confirming export opens the file dialog. The old "&Continue" label
+        # was translated, in Portuguese, as an unrelated email sentence.
+        ok_button.SetLabel(_("&Save"))
         ok_button.SetDefault()
         
         main_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)

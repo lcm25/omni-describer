@@ -1,5 +1,5 @@
 # audio_describer/core/audio_describer.py
-from ..i18n_setup import _
+from ..i18n_setup import _, description_language_name
 import os
 import time
 import json
@@ -534,8 +534,7 @@ def parse_gemini_json_response_mmss(json_string):
 def _build_unified_prompts(user_prompt, model_name_to_use):
     """Builds the system and user prompts for the unified generation API call."""
     target_language_code = config_model.get_setting("application_language") or "en"
-    lang_map = {"en": "English", "es": "Spanish", "fr": "French", "ar": "Arabic", "pt": "Portuguese", "it": "Italian", "ru": "Russian", "uk": "Ukrainian", "vi": "vietnamese", "tr": "Turkish"}
-    target_language_name = lang_map.get(target_language_code.lower(), "English")
+    target_language_name = description_language_name(target_language_code)
     
     enable_glossary = config_model.get_setting("enable_character_glossary")
     

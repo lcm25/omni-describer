@@ -770,9 +770,7 @@ msgstr ""
 
 #: audio_describer/ui/export_options_dialog.py:39
 msgid "&Continue"
-msgstr ""
-"Enviámos-lhe um e-mail de verificação.\n"
-"Clique no link contido nesse e-mail para &continuar"
+msgstr "Con&tinuar"
 
 #: audio_describer/ui/file_dialogs.py:14
 msgid "Open Local Video File"
@@ -1632,6 +1630,14 @@ msgid "Portuguese"
 msgstr ""
 
 #: audio_describer/ui/settings_dialog.py:43
+msgid "Portuguese (Brazil)"
+msgstr "Português (Brasil)"
+
+#: audio_describer/ui/settings_dialog.py:44
+msgid "Portuguese (Portugal)"
+msgstr "Português (Portugal)"
+
+#: audio_describer/ui/settings_dialog.py:45
 msgid "Russian"
 msgstr "Russo"
 

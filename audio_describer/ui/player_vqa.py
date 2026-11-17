@@ -1,5 +1,5 @@
 # audio_describer/ui/player_vqa.py
-from ..i18n_setup import _
+from ..i18n_setup import _, description_language_name
 import wx
 import os
 import sys
@@ -17,8 +17,6 @@ from ..utils.system_utils import run_command
 from .ask_more_dialog import AskMoreDialog
 from .scene_explorer_dialog import SceneExplorer
 from .explore_scene_options_dialog import ExploreSceneOptionsDialog
-
-lang_map = {"en": "English", "es": "Spanish", "fr": "French", "ar": "Arabic", "pt": "Portuguese", "it": "Italian", "ru": "Russian", "uk": "Ukrainian", "vi": "vietnamese", "tr": "Turkish"}
 
 try:
     import vlc
@@ -81,7 +79,7 @@ def _handle_ask_more_thread(player_instance, user_question, segment_start_ms, co
         
         target_language_code = config_model.get_setting("application_language") or "en"
         
-        target_language_name = lang_map.get(target_language_code.lower(), "English")
+        target_language_name = description_language_name(target_language_code)
         vqa_prompt = f"Based on this short video clip, answer the user's question concisely in {target_language_name}: \"{user_question}\""
         ai_answer, vqa_usage_data = audio_describer.ask_gemini_about_video_segment(temp_segment_path, vqa_prompt)
         is_error_response = False
@@ -152,7 +150,7 @@ def _handle_explore_scene_thread(player_instance, segment_start_ms, media_total_
         wx.CallAfter(progress_dialog.Pulse, trans_func("Asking AI to analyze the scene... This may take a moment."))
         
         target_language_code = config_model.get_setting("application_language") or "en"
-        target_language_name = lang_map.get(target_language_code.lower(), "English")
+        target_language_name = description_language_name(target_language_code)
 
         user_focus_instruction = f'\nAdditionally, pay special attention to this user request: "{user_prompt}"' if user_prompt else ""
 
