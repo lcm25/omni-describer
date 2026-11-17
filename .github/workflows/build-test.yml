@@ -10,6 +10,12 @@ on:
         required: true
         default: main
         type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -25,6 +31,15 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+
+      - name: Tag matches version.py
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:GITHUB_REF.Substring('refs/tags/v'.Length)
+          $ver = python -c "from audio_describer.version import APP_VERSION; print(APP_VERSION)"
+          if ($tag -ne $ver) { throw "Tag v$tag does not match version.py ($ver)" }
 
       - name: Install dependencies
         run: |

@@ -1,6 +1,7 @@
 # Application Details
 import sys
 import os
+from .version import APP_VERSION, UPDATE_REPO
 
 # --- Base Path Calculation ---
 # This is the definitive, most robust method for finding data files.
@@ -70,7 +71,7 @@ def app_file_slug(name=None):
         slug = slug.replace("__", "_")
     return slug.strip("_") or "app"
 
-APP_VERSION = "2.1.0"
+# APP_VERSION and UPDATE_REPO live in version.py.
 
 # New installs use this folder. Legacy folders are copied in on first run.
 APP_DATA_DIR_NAME = APP_NAME
@@ -81,10 +82,9 @@ def portable_marker_name():
 
 # --- Auto-update (GitHub Releases) ---
 # This fork. A build must not download the upstream audioses packages.
-GITHUB_REPO = "lcm25/omni-describer"
+GITHUB_REPO = UPDATE_REPO
 VERSION_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/{APP_NAME}-portable.zip"
-UPDATER_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/updater.exe"
 WEBSITE_URL = "https://audioses.com/"
 WEBAPP_URL = "https://studio.binclusive.io"
 CONTACT_EMAIL = "info@audioses.com"

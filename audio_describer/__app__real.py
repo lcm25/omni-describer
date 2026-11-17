@@ -3,8 +3,6 @@ import wx
 import sys
 import os
 import time
-import threading # Import threading for the background check
-
 # --- Top-level imports should be minimal ---
 import audio_describer.i18n_setup 
 from audio_describer.utils.logger import app_logger
@@ -209,22 +207,8 @@ class AudioDescriberApp(wx.App):
         Launches the update check in a separate thread to avoid blocking the UI.
         """
         from audio_describer.utils import update_checker
-        import audio_describer.config as app_config
         _ = audio_describer.i18n_setup._
-        
-        thread = threading.Thread(
-            target=update_checker.check_for_updates,
-            args=(
-                self.main_frame, # Pass the main window reference
-                app_config.APP_VERSION,
-                app_config.VERSION_URL,
-                app_config.DOWNLOAD_URL,
-                self.lang_code,
-                _,
-            ),
-            daemon=True # Daemon threads exit when the main app exits
-        )
-        thread.start()
+        update_checker.start_check(self.main_frame, self.lang_code, _)
 
     def _finish_smoke(self):
         app_logger.info("main window shown")

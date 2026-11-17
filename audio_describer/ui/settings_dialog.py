@@ -102,6 +102,10 @@ class SettingsDialog(wx.Dialog):
         general_grid_sizer.Add(self.interrupt_speech_checkbox, 1, wx.EXPAND | wx.ALL, 5)
         self.context_menu_checkbox = wx.CheckBox(self.general_panel, label=_("Add to the Windows &context menu"))
         general_grid_sizer.Add(self.context_menu_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.check_updates_checkbox = wx.CheckBox(self.general_panel, label=_("Check for updates on startup"))
+        general_grid_sizer.Add(self.check_updates_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.check_updates_button = wx.Button(self.general_panel, label=_("Check for updates &now"))
+        general_grid_sizer.Add(self.check_updates_button, 0, wx.ALL, 5)
         self.general_panel.SetSizer(general_grid_sizer)
         self.notebook.AddPage(self.general_panel, _("General"))
 
@@ -285,6 +289,8 @@ class SettingsDialog(wx.Dialog):
         self.local_download_button.Bind(wx.EVT_BUTTON, self.OnDownloadLocal)
         self.local_remove_button.Bind(wx.EVT_BUTTON, self.OnRemoveLocal)
         self.context_menu_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.check_updates_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.check_updates_button.Bind(wx.EVT_BUTTON, self.OnCheckUpdates)
         self.analysis_model_choice.Bind(wx.EVT_CHOICE, self.OnAnalysisModelChanged)
         self.analysis_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.temp_text_ctrl.Bind(wx.EVT_TEXT, self.OnSettingChanged)
@@ -380,13 +386,14 @@ class SettingsDialog(wx.Dialog):
             self.sapi_sizer.GetStaticBox().SetLabel(box_label)
             
             self.sapi_voice_choice.Clear()
+            self.sapi_voice_choice.Enable()
+            self.sapi_voice_choice.Show()
             if self.sapi_voices:
-                self.sapi_voice_choice.Enable()
                 for voice in self.sapi_voices:
                     self.sapi_voice_choice.Append(voice['name'])
             else:
-                self.sapi_voice_choice.Append(_("(No voices found)"))
-                self.sapi_voice_choice.Disable()
+                self.sapi_voice_choice.Append(_("Could not list the voices."))
+                app_logger.error("SAPI voice list is empty for engine %s.", selected_engine)
             self.sapi_voice_choice.SetSelection(0)
 
         self.audio_output_panel.Layout()
@@ -472,6 +479,7 @@ class SettingsDialog(wx.Dialog):
         self._sync_ducking_level_visibility()
         from ..utils.shell_menu import is_registered
         self.context_menu_checkbox.SetValue(is_registered())
+        self.check_updates_checkbox.SetValue(bool(self.current_settings.get("check_updates_on_startup", True)))
         
         self.settings_changed = False
         self.apply_button.Disable()
@@ -909,6 +917,15 @@ class SettingsDialog(wx.Dialog):
 
         self._run_refresh(button, _("Updating models..."), work, apply_result)
 
+    def OnCheckUpdates(self, event):
+        from ..utils import update_checker
+        from .accessibility_utils import speak_message
+        speak_message(_("Checking for updates."))
+        update_checker.start_check(self, self._settings_language(), _, announce=True)
+
+    def _settings_language(self):
+        return self.current_settings.get("application_language") or "pt_BR"
+
     def ApplySettings(self):
         self.current_settings["youtube_download_quality"] = self.yt_quality_choice.GetStringSelection()
         self.current_settings["application_language"] = self.app_lang_internal_values[self.app_lang_choice.GetSelection()]
@@ -927,6 +944,7 @@ class SettingsDialog(wx.Dialog):
         self.current_settings["video_chunk_duration_seconds"] = self.chunk_duration_spin.GetValue()
         self.current_settings["enable_character_glossary"] = self.enable_character_glossary_checkbox.IsChecked()
         self.current_settings["context_menu_enabled"] = self.context_menu_checkbox.IsChecked()
+        self.current_settings["check_updates_on_startup"] = self.check_updates_checkbox.IsChecked()
         from ..utils.shell_menu import apply_shell_menu
         apply_shell_menu(self.context_menu_checkbox.IsChecked())
         

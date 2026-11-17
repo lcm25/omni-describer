@@ -1,128 +1,226 @@
 # audio_describer/utils/update_checker.py
-import wx
-import urllib.request
+import hashlib
 import json
 import os
 import sys
 import tempfile
-import zipfile
+import threading
+import urllib.error
+import urllib.request
 import subprocess
-from packaging.version import parse
+import wx
+
 from ..utils.logger import app_logger
-from ..utils import sound_player
-from .. import config # <-- FIX: Added import for config to get the new UPDATER_URL
+from ..utils.update_plan import asset_filename, is_newer, select_asset, sha256_from_sums
+from .. import config
+
+API_TIMEOUT = 8
+DOWNLOAD_TIMEOUT = 30
+
 
 def get_app_path():
     if getattr(sys, 'frozen', False):
         return sys.executable
-    else:
-        import __main__
-        return os.path.abspath(__main__.__file__)
+    import __main__
+    return os.path.abspath(__main__.__file__)
+
 
 def get_app_dir():
     return os.path.dirname(get_app_path())
 
-def check_for_updates(parent_frame, current_version, version_url, download_url, lang_code, _):
+
+def is_portable_copy():
+    return os.path.isfile(os.path.join(get_app_dir(), config.portable_marker_name()))
+
+
+def fetch_latest_release(repo, timeout=API_TIMEOUT):
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    request = urllib.request.Request(url, headers={
+        "User-Agent": "Descritudo",
+        "Accept": "application/vnd.github+json",
+    })
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def check_for_updates(parent_frame, current_version, repo, lang_code, _, announce=False):
+    """Background check. Startup stays silent when the network fails or nothing is newer."""
     try:
-        # version_url points at the GitHub "latest release" API, which returns JSON.
-        # A User-Agent is required or GitHub answers 403.
-        req = urllib.request.Request(version_url, headers={"User-Agent": "OmniDescriber-Updater"})
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode('utf-8'))
-        remote_version = data.get("tag_name", "").lstrip("v").strip()
-        if remote_version and parse(remote_version) > parse(current_version):
-            wx.CallAfter(_show_update_prompt, parent_frame, remote_version, current_version, download_url, lang_code, _)
-    except Exception as e:
-        app_logger.error(f"Update check failed: {e}", exc_info=True)
-
-def _show_update_prompt(parent_frame, remote_version, current_version, download_url, lang_code, _):
-    sound_player.play("update.mp3")
-    msg = (_("A new version ({}) is available. You have version {}.\n\n"
-           "Would you like to download and install it now?").format(remote_version, current_version))
-    title = _("Update Available")
-    user_choice = wx.MessageBox(msg, title, wx.YES_NO | wx.ICON_QUESTION, parent=parent_frame)
-    if user_choice == wx.YES:
-        _initiate_update_and_exit(parent_frame, download_url, lang_code, _)
-
-def _initiate_update_and_exit(parent_frame, download_url, lang_code, _):
-    progress_dialog = wx.ProgressDialog(
-        _("Downloading Update"), _("Downloading..."), 
-        maximum=100, parent=parent_frame, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE
-    )
-    try:
-        temp_dir = tempfile.gettempdir()
-        zip_path = os.path.join(temp_dir, "update.zip")
-        with urllib.request.urlopen(download_url) as response, open(zip_path, 'wb') as out_file:
-            total_size = int(response.info().get('Content-Length', -1))
-            bytes_so_far = 0
-            chunk_size = 8192
-            while True:
-                chunk = response.read(chunk_size)
-                if not chunk: break
-                out_file.write(chunk)
-                bytes_so_far += len(chunk)
-                if total_size > 0:
-                    percent = int(bytes_so_far * 100 / total_size)
-                    progress_dialog.Update(percent)
-        progress_dialog.Destroy()
-        
-        app_dir = get_app_dir()
-        app_path = get_app_path()
-        updater_path = os.path.join(app_dir, "updater.exe")
-
-        # --- START: FIX for missing updater component ---
-        if not os.path.exists(updater_path):
-            app_logger.warning("Updater component not found at '%s'. Attempting to download it.", updater_path)
-            
-            # Inform the user that a required component is being downloaded.
-            wx.MessageBox(
-                _("The updater component seems to be missing. The application will now attempt to download the necessary updater to proceed."),
-                _("Updater Missing"),
-                wx.OK | wx.ICON_INFORMATION,
-                parent_frame
+        release = fetch_latest_release(repo)
+        remote = release.get("tag_name") or ""
+        if is_newer(remote, current_version):
+            wx.CallAfter(
+                _show_update_prompt, parent_frame, remote.lstrip("vV"),
+                release.get("body") or "", release.get("assets") or [], lang_code, _,
             )
-            
-            try:
-                # Assumes UPDATER_URL is defined in your config.py, e.g., "https://yoursite.com/updater.exe"
-                with urllib.request.urlopen(config.UPDATER_URL) as response, open(updater_path, 'wb') as out_file:
-                    out_file.write(response.read())
-                
-                app_logger.info("Successfully downloaded standalone updater to '%s'", updater_path)
+        elif announce:
+            wx.CallAfter(
+                wx.MessageBox,
+                _("You are already on the latest version (%s).") % current_version,
+                config.APP_NAME,
+                wx.OK | wx.ICON_INFORMATION,
+                parent_frame,
+            )
+    except Exception as exc:
+        if announce:
+            app_logger.info("Update check failed: %s", exc)
+            wx.CallAfter(
+                wx.MessageBox,
+                _("Could not check for updates."),
+                config.APP_NAME,
+                wx.OK | wx.ICON_INFORMATION,
+                parent_frame,
+            )
+        else:
+            app_logger.info("Update check skipped: %s", exc)
 
-                # Final check to ensure the file was actually created before proceeding.
-                if not os.path.exists(updater_path):
-                    raise IOError("Updater file not found even after a successful download attempt.")
 
-            except Exception as e:
-                # If the download fails, show a detailed error and stop the update process.
-                app_logger.error("Failed to download the standalone updater: %s", e, exc_info=True)
-                wx.MessageBox(
-                    _("Could not download the required updater component. The update cannot proceed.\n\nPlease try again later or contact support.\n\nError: {}").format(e),
-                    _("Update Error"),
-                    wx.OK | wx.ICON_ERROR,
-                    parent_frame
-                )
-                return # Stop the update.
-        # --- END: FIX ---
+def _show_update_prompt(parent, version, notes, assets, lang_code, _):
+    dialog = UpdateOfferDialog(parent, version, notes)
+    if dialog.ShowModal() != wx.ID_OK:
+        dialog.Destroy()
+        return
+    dialog.Destroy()
+    portable = is_portable_copy()
+    filename = asset_filename(config.APP_NAME, portable)
+    asset = select_asset(assets, filename)
+    if not asset or not asset.get("browser_download_url"):
+        wx.MessageBox(_("The update file was not published."), config.APP_NAME, wx.OK | wx.ICON_INFORMATION, parent)
+        return
+    checksum = _published_checksum(assets, filename)
+    if checksum is False:
+        wx.MessageBox(_("The downloaded file does not match the published checksum."), config.APP_NAME, wx.OK | wx.ICON_INFORMATION, parent)
+        return
+    _download_and_apply(parent, asset["browser_download_url"], filename, checksum or "", portable, lang_code, _)
 
-        # If we reach this point, updater_path is guaranteed to exist.
-        parent_pid = os.getpid()
-            
-        command = [
-            updater_path, # No need for the complex ternary logic if we always expect an .exe
-            zip_path, 
-            app_dir, 
-            app_path, 
-            lang_code,
-            str(parent_pid)
-        ]
-        
-        subprocess.Popen(command)
-        
-        app_logger.info("Update initiated. Triggering fast app exit.")
+
+class UpdateOfferDialog(wx.Dialog):
+    def __init__(self, parent, version, notes):
+        sentence = _("Descritudo %s is available. Update now?") % version
+        super().__init__(parent, title=sentence)
+        self.notes = notes or ""
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticText(self, label=sentence), 0, wx.ALL, 12)
+        buttons = wx.BoxSizer(wx.HORIZONTAL)
+        self.update_button = wx.Button(self, wx.ID_OK, _("&Update"))
+        later = wx.Button(self, wx.ID_CANCEL, _("Not &now"))
+        notes_button = wx.Button(self, label=_("Read release n&otes"))
+        self.update_button.SetDefault()
+        buttons.Add(self.update_button, 0, wx.RIGHT, 8)
+        buttons.Add(later, 0, wx.RIGHT, 8)
+        buttons.Add(notes_button, 0)
+        sizer.Add(buttons, 0, wx.ALL, 12)
+        self.SetSizerAndFit(sizer)
+        self.SetEscapeId(wx.ID_CANCEL)
+        notes_button.Bind(wx.EVT_BUTTON, self._read_notes)
+        self.Bind(wx.EVT_SHOW, self._focus_update)
+
+    def _focus_update(self, event):
+        self.update_button.SetFocus()
+        event.Skip()
+
+    def _read_notes(self, event):
+        text = self.notes.strip() or _("No release notes.")
+        wx.MessageBox(text, _("Release notes"), wx.OK | wx.ICON_INFORMATION, self)
+
+
+def _published_checksum(assets, filename):
+    """None when no checksum was published. False when it was published but cannot be used."""
+    sums = select_asset(assets, "SHA256SUMS.txt")
+    if not sums or not sums.get("browser_download_url"):
+        return None
+    try:
+        request = urllib.request.Request(sums["browser_download_url"], headers={"User-Agent": "Descritudo"})
+        with urllib.request.urlopen(request, timeout=API_TIMEOUT) as response:
+            text = response.read().decode("utf-8", errors="replace")
+        return sha256_from_sums(text, filename) or False
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        app_logger.info("Checksum file was not read: %s", exc)
+        return False
+
+
+def _download_and_apply(parent, url, filename, checksum, portable, lang_code, _):
+    from .accessibility_utils import speak_message
+    progress = wx.ProgressDialog(
+        config.APP_NAME, _("Downloading the update."),
+        maximum=100, parent=parent, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE,
+    )
+    destination = os.path.join(tempfile.gettempdir(), filename)
+    announced = set()
+
+    def report(percent):
+        bucket = percent // 25
+        if bucket in announced or bucket <= 0:
+            return
+        announced.add(bucket)
+        speak_message(_("%d percent downloaded.") % (bucket * 25))
+        progress.Update(bucket * 25, _("%d percent downloaded.") % (bucket * 25))
+
+    try:
+        _download(url, destination, report)
+        if checksum:
+            with open(destination, "rb") as payload:
+                digest = hashlib.sha256(payload.read()).hexdigest()
+            if digest.lower() != checksum.lower():
+                raise ValueError("checksum mismatch")
+        progress.Destroy()
+        _launch_updater(destination, portable, lang_code)
         app = wx.GetApp()
         app.is_updating = True
-        parent_frame.Close()
-    except Exception as e:
-        if progress_dialog: progress_dialog.Destroy()
-        wx.MessageBox(_("Failed to download or apply update: {}").format(e), _("Update Error"), wx.OK | wx.ICON_ERROR, parent_frame)
+        frame = getattr(app, "main_frame", None) or parent
+        frame.Close()
+    except Exception as exc:
+        progress.Destroy()
+        app_logger.info("Update was not applied: %s", exc)
+        if "checksum" in str(exc):
+            wx.MessageBox(_("The downloaded file does not match the published checksum."), config.APP_NAME, wx.OK | wx.ICON_INFORMATION, parent)
+        else:
+            wx.MessageBox(_("Could not check for updates."), config.APP_NAME, wx.OK | wx.ICON_INFORMATION, parent)
+
+
+def _download(url, destination, report):
+    request = urllib.request.Request(url, headers={"User-Agent": "Descritudo"})
+    with urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT) as response, open(destination, "wb") as out:
+        total = int(response.headers.get("Content-Length") or 0)
+        read = 0
+        while True:
+            chunk = response.read(64 * 1024)
+            if not chunk:
+                break
+            out.write(chunk)
+            read += len(chunk)
+            if total:
+                report(int(read * 100 / total))
+
+
+def _launch_updater(payload_path, portable, lang_code):
+    app_dir = get_app_dir()
+    app_path = get_app_path()
+    command = _updater_command(app_dir)
+    parent_pid = str(os.getpid())
+    if portable:
+        command.extend([payload_path, app_dir, app_path, lang_code, parent_pid])
+    else:
+        command.extend(["--installer", payload_path, parent_pid, app_path])
+    subprocess.Popen(command)
+
+
+def _updater_command(app_dir):
+    bundled = os.path.join(app_dir, "updater.exe")
+    if os.path.isfile(bundled):
+        return [bundled]
+    source = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "updater.py"))
+    if os.path.isfile(source):
+        return [sys.executable, source]
+    raise FileNotFoundError(bundled)
+
+
+def start_check(parent_frame, lang_code, _, announce=False):
+    from ..models import config_model
+    if not announce and not config_model.get_setting("check_updates_on_startup"):
+        return
+    threading.Thread(
+        target=check_for_updates,
+        args=(parent_frame, config.APP_VERSION, config.UPDATE_REPO, lang_code, _, announce),
+        daemon=True,
+    ).start()

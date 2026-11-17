@@ -103,6 +103,31 @@ def test_voice(engine_choice, text, settings):
     else:
         raise TTSError(f"Unknown TTS engine for testing: '{engine_choice}'")
 
+def _assign_sapi_voice(engine, voice_id):
+    """Select a desktop or OneCore token. pyttsx3 only searches desktop voices."""
+    try:
+        engine.setProperty("voice", voice_id)
+        return
+    except Exception as exc:
+        app_logger.info("Desktop SAPI did not accept voice %s: %s", voice_id, exc)
+    try:
+        import comtypes.client
+        category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+        category.SetId(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices", False)
+        try:
+            tokens = category.EnumerateTokens("", "")
+        except Exception:
+            tokens = category.EnumerateTokens()
+        for index in range(int(tokens.Count)):
+            token = tokens.Item(index)
+            if getattr(token, "Id", None) == voice_id:
+                engine.proxy._driver._tts.Voice = token
+                return
+    except Exception as exc:
+        app_logger.info("OneCore voice was not usable: %s", exc)
+    app_logger.error("SAPI5: Could not set voice ID '%s'.", voice_id)
+
+
 def _test_voice_sapi5(text, settings):
     if not PYTTSX3_AVAILABLE:
         raise TTSError("pyttsx3 library not available for SAPI5.")
@@ -114,7 +139,7 @@ def _test_voice_sapi5(text, settings):
     try:
         engine = pyttsx3.init(driverName='sapi5')
         if voice_id:
-            engine.setProperty('voice', voice_id)
+            _assign_sapi_voice(engine, voice_id)
         
         base_rate = 180
         actual_rate = int(base_rate * (rate_percent / 100.0))
@@ -275,8 +300,7 @@ def _synthesize_with_sapi5(text, output_wav_path):
         actual_rate = int(base_sapi_rate * (rate_percent / 100.0))
         actual_rate = max(50, min(actual_rate, 450))
         if voice_id:
-            try: engine.setProperty('voice', voice_id)
-            except Exception as e_voice: app_logger.error(f"SAPI5: Could not set voice ID '{voice_id}': {e_voice}.")
+            _assign_sapi_voice(engine, voice_id)
         engine.setProperty('rate', actual_rate)
         output_dir = os.path.dirname(output_wav_path)
         if not os.path.exists(output_dir):
@@ -438,25 +462,67 @@ def _synthesize_with_sapi5_32bit(text, output_wav_path, override_settings=None):
         app_logger.error(f"SAPI5 32-bit: Error during speech synthesis: {e}", exc_info=True)
         raise TTSError(f"SAPI5 32-bit speech synthesis failed: {e}")
 
-def get_available_sapi5_voices():
-    if not PYTTSX3_AVAILABLE: return []
-    voices_list = []
-    engine = None 
+def _records_from_tokens(tokens):
+    records = []
     try:
-        engine = pyttsx3.init(driverName='sapi5')
-        if not engine: return []
-        voices_props = engine.getProperty('voices')
-        if voices_props:
-            for vp in voices_props:
-                voices_list.append({"name": vp.name, "id": vp.id})
-        return voices_list
-    except Exception as e:
-        app_logger.error(f"Failed to get SAPI5 voices: {e}", exc_info=True)
+        count = int(tokens.Count)
+    except Exception:
+        return records
+    for index in range(count):
+        try:
+            token = tokens.Item(index)
+            language = ""
+            try:
+                language = token.GetAttribute("Language")
+            except Exception:
+                language = ""
+            try:
+                description = token.GetDescription()
+            except Exception:
+                description = ""
+            try:
+                token_id = token.Id
+            except Exception:
+                token_id = ""
+            records.append({"description": description, "id": token_id, "language": language})
+        except Exception as exc:
+            app_logger.warning("Skipping one SAPI voice token: %s", exc)
+    return records
+
+
+def _sapi_token_sets():
+    import comtypes.client
+    sets = []
+    voice = comtypes.client.CreateObject("SAPI.SpVoice")
+    sets.append(voice.GetVoices())
+    try:
+        category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+        category.SetId(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices", False)
+        try:
+            sets.append(category.EnumerateTokens("", ""))
+        except Exception:
+            sets.append(category.EnumerateTokens())
+    except Exception as exc:
+        app_logger.warning("OneCore voices were not listed: %s", exc)
+    return sets
+
+
+def get_available_sapi5_voices():
+    """Desktop SAPI and OneCore tokens. One bad voice is skipped."""
+    from .sapi_voices import collect_voice_records
+    if os.name != "nt":
         return []
-    finally:
-        if engine:
-            try: engine.stop()
-            except Exception: pass
+    records = []
+    try:
+        for tokens in _sapi_token_sets():
+            try:
+                records.extend(_records_from_tokens(tokens))
+            except Exception as exc:
+                app_logger.warning("SAPI voice source failed: %s", exc)
+        return collect_voice_records(records)
+    except Exception as exc:
+        app_logger.error("Failed to enumerate SAPI5 voices: %s", exc, exc_info=True)
+        return []
 
 def get_available_sapi5_voices_32bit():
     if not SAPI5_32BIT_HELPER_AVAILABLE:
@@ -470,7 +536,11 @@ def get_available_sapi5_voices_32bit():
             timeout=10,
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
         )
-        return json.loads(process.stdout)
+        payload = json.loads(process.stdout)
+        if not isinstance(payload, list):
+            app_logger.error("32-bit SAPI helper did not return a voice list: %s", payload)
+            return []
+        return payload
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
         app_logger.error(f"Failed to get 32-bit SAPI5 voices from helper: {e}")
         return []

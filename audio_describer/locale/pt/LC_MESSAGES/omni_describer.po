@@ -2725,3 +2725,51 @@ msgstr "Gemma 3 4B, cerca de 3,3 GB, 8 GB de RAM"
 
 msgid "Gemma 3 12B, about 8.2 GB, 16 GB of RAM"
 msgstr "Gemma 3 12B, cerca de 8,2 GB, 16 GB de RAM"
+
+msgid "Could not list the voices."
+msgstr "Não foi possível listar as vozes."
+
+msgid "Check for updates on startup"
+msgstr "Verificar atualizações ao iniciar"
+
+msgid "Check for updates &now"
+msgstr "Verificar atualizações a&gora"
+
+msgid "Checking for updates."
+msgstr "A verificar atualizações."
+
+msgid "Descritudo %s is available. Update now?"
+msgstr "Descritudo %s disponível. Atualizar agora?"
+
+msgid "&Update"
+msgstr "&Atualizar"
+
+msgid "Not &now"
+msgstr "Agora &não"
+
+msgid "Read release n&otes"
+msgstr "Ler n&otas da versão"
+
+msgid "You are already on the latest version (%s)."
+msgstr "Já está na versão mais recente (%s)."
+
+msgid "Could not check for updates."
+msgstr "Não foi possível verificar as atualizações."
+
+msgid "Downloading the update."
+msgstr "A transferir a atualização."
+
+msgid "%d percent downloaded."
+msgstr "%d por cento transferidos."
+
+msgid "The downloaded file does not match the published checksum."
+msgstr "O ficheiro transferido não corresponde à soma publicada."
+
+msgid "The update file was not published."
+msgstr "O ficheiro da atualização não foi publicado."
+
+msgid "No release notes."
+msgstr "Não há notas da versão."
+
+msgid "Release notes"
+msgstr "Notas da versão"

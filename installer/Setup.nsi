@@ -70,6 +70,7 @@ VIAddVersionKey /LANG=1046 "CompanyName" "Leandro Maruci"
 !include "FileFunc.nsh"
 
 Var Atualizar
+Var UpgradeQuiet
 Var Modo
 Var RadInstalar
 Var RadPortatil
@@ -127,6 +128,7 @@ Function .onInit
   StrCpy $OptGuia ${BST_CHECKED}
   StrCpy $DirEscolhidaPeloUsuario "0"
   StrCpy $Atualizar "0"
+  StrCpy $UpgradeQuiet "0"
   StrCpy $NaPaginaApoio "0"
 
   ${GetParameters} $0
@@ -136,6 +138,14 @@ Function .onInit
     StrCpy $Atualizar "1"
   ${EndIf}
   ClearErrors
+  ${GetOptions} $0 "/UPGRADEQUIET" $1
+  ${IfNot} ${Errors}
+    StrCpy $UpgradeQuiet "1"
+  ${EndIf}
+  IfSilent 0 quiet_done
+    StrCpy $UpgradeQuiet "1"
+  quiet_done:
+
   ${GetOptions} $0 "/PORTATIL" $1
   ${IfNot} ${Errors}
     StrCpy $Modo "portatil"
@@ -161,7 +171,11 @@ Function AoCancelar
 FunctionEnd
 
 Function PaginaApoio
-  ; Sempre visível: instalação, atualização e cópia portátil.
+  ; Instalação interativa, atualização e cópia portátil mostram esta página.
+  ; Só a atualização silenciosa do programa pula as páginas.
+  ${If} $UpgradeQuiet == "1"
+    Abort
+  ${EndIf}
   StrCpy $NaPaginaApoio "0"
 
   !insertmacro MUI_HEADER_TEXT "Apoie o projeto" "Opcional. Enter ou Esc continuam."
@@ -214,6 +228,9 @@ Function CopiarPix
 FunctionEnd
 
 Function PaginaModo
+  ${If} $UpgradeQuiet == "1"
+    Abort
+  ${EndIf}
   !insertmacro MUI_HEADER_TEXT "Tipo de uso" "Escolha como deseja usar o ${APPDISPLAY}."
   nsDialogs::Create 1018
   Pop $0
@@ -266,6 +283,9 @@ Function PaginaModoSair
 FunctionEnd
 
 Function PaginaAtalhos
+  ${If} $UpgradeQuiet == "1"
+    Abort
+  ${EndIf}
   ${If} $Modo != "instalar"
     Abort
   ${EndIf}
@@ -294,6 +314,9 @@ Function PaginaAtalhosSair
 FunctionEnd
 
 Function PastaPre
+  ${If} $UpgradeQuiet == "1"
+    Abort
+  ${EndIf}
 FunctionEnd
 
 Function PastaShow
@@ -354,6 +377,12 @@ Section "Principal" SecPrincipal
     StrCpy $OptGuia ${BST_UNCHECKED}
   ${EndIf}
 
+  ; A atualização silenciosa troca os arquivos e não mexe em atalhos,
+  ; menu de contexto nem na pasta de configurações do usuário.
+  ${If} $UpgradeQuiet == "1"
+    Goto gravar_registro
+  ${EndIf}
+
   ${If} $OptDesktop == ${BST_CHECKED}
     CreateShortcut "$DESKTOP\${APPDISPLAY}.lnk" "$INSTDIR\${APPEXE}"
   ${EndIf}
@@ -398,6 +427,7 @@ Section "Principal" SecPrincipal
   !insertmacro RegisterAssoc "video"
   CreateShortcut "$APPDATA\Microsoft\Windows\SendTo\${SENDTO}" "$INSTDIR\${APPEXE}"
 
+  gravar_registro:
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayName" "${APPDISPLAY}"
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayVersion" "${APPVERSION}"
   WriteRegStr HKCU "${UNINSTKEY}" "Publisher" "Leandro Maruci"
@@ -406,6 +436,9 @@ Section "Principal" SecPrincipal
   WriteRegStr HKCU "${UNINSTKEY}" "UninstallString" "$\"$INSTDIR\Desinstalar.exe$\""
   WriteRegDWORD HKCU "${UNINSTKEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNINSTKEY}" "NoRepair" 1
+  ${If} $UpgradeQuiet == "1"
+    Exec '"$INSTDIR\${APPEXE}"'
+  ${EndIf}
 SectionEnd
 
 Section "Uninstall"
