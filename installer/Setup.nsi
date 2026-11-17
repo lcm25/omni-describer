@@ -1,5 +1,8 @@
-; Instalador e cópia portátil. Compilar com:
-;   makensis -DAPPNAME=Descritudo -DAPPDISPLAY=Descritudo -DAPPVERSION=2.1.0 -DAPPEXE=Descritudo.exe -DOUTFILE=Descritudo-Setup.exe -DSRCDIR=installer\arquivos Setup.nsi
+; Instalador e cópia portátil.
+; File and LicenseData resolve relative paths from this script's directory
+; (installer\), not from the directory makensis was started in. Pass an
+; absolute -DSRCDIR and -DOUTFILE. Omitting SRCDIR uses arquivos next to this file.
+;   makensis -DAPPNAME=Descritudo -DAPPDISPLAY=Descritudo -DAPPVERSION=2.1.0 -DAPPEXE=Descritudo.exe -DOUTFILE=C:\out\Descritudo-Setup.exe -DSRCDIR=C:\src\installer\arquivos C:\src\installer\Setup.nsi
 Unicode true
 SetCompressor /SOLID lzma
 ManifestDPIAware true
@@ -21,7 +24,16 @@ RequestExecutionLevel user
   !define OUTFILE "Descritudo-Setup.exe"
 !endif
 !ifndef SRCDIR
-  !define SRCDIR "installer\arquivos"
+  !define SRCDIR "${__FILEDIR__}\arquivos"
+!endif
+; A repo-root path such as installer\arquivos is opened under installer\ and misses
+; the files. If that happens, use the arquivos folder next to this script.
+!if /FileExists "${SRCDIR}\Licenca-de-uso.txt"
+!else if /FileExists "${__FILEDIR__}\arquivos\Licenca-de-uso.txt"
+  !undef SRCDIR
+  !define SRCDIR "${__FILEDIR__}\arquivos"
+!else
+  !error "Licenca-de-uso.txt not found. Pass an absolute -DSRCDIR. Looked in ${SRCDIR} and ${__FILEDIR__}\arquivos."
 !endif
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
