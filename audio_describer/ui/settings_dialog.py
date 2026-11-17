@@ -100,6 +100,8 @@ class SettingsDialog(wx.Dialog):
         general_grid_sizer.Add(self.log_level_choice, 1, wx.EXPAND | wx.ALL, 5)
         self.interrupt_speech_checkbox = wx.CheckBox(self.general_panel, label=_("Allow descriptions to interrupt current speech"))
         general_grid_sizer.Add(self.interrupt_speech_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.context_menu_checkbox = wx.CheckBox(self.general_panel, label=_("Add to the Windows &context menu"))
+        general_grid_sizer.Add(self.context_menu_checkbox, 1, wx.EXPAND | wx.ALL, 5)
         self.general_panel.SetSizer(general_grid_sizer)
         self.notebook.AddPage(self.general_panel, _("General"))
 
@@ -138,6 +140,13 @@ class SettingsDialog(wx.Dialog):
         ai_grid_sizer.Add(self.analysis_key_label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.analysis_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
         ai_grid_sizer.Add(self.analysis_key_text, 1, wx.EXPAND|wx.ALL, 5)
+        self.local_note = wx.StaticText(self.ai_panel, label=_("On this computer, offline. Slower and less detailed than the cloud. Video is a few frames only."))
+        ai_grid_sizer.Add(self.local_note, 0, wx.EXPAND|wx.ALL, 5)
+        ai_grid_sizer.Add((0, 0))
+        self.local_download_button = wx.Button(self.ai_panel, label=_("&Download local model"))
+        ai_grid_sizer.Add(self.local_download_button, 0, wx.ALL, 5)
+        self.local_remove_button = wx.Button(self.ai_panel, label=_("&Remove model"))
+        ai_grid_sizer.Add(self.local_remove_button, 0, wx.ALL, 5)
         ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Temperature:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.temp_text_ctrl = wx.TextCtrl(self.ai_panel, value="0.7")
         ai_grid_sizer.Add(self.temp_text_ctrl, 1, wx.EXPAND|wx.ALL, 5)
@@ -261,6 +270,9 @@ class SettingsDialog(wx.Dialog):
         self.verbosity_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.model_override_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.analysis_provider_choice.Bind(wx.EVT_CHOICE, self.OnAnalysisProviderChanged)
+        self.local_download_button.Bind(wx.EVT_BUTTON, self.OnDownloadLocal)
+        self.local_remove_button.Bind(wx.EVT_BUTTON, self.OnRemoveLocal)
+        self.context_menu_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
         self.analysis_model_choice.Bind(wx.EVT_CHOICE, self.OnAnalysisModelChanged)
         self.analysis_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.temp_text_ctrl.Bind(wx.EVT_TEXT, self.OnSettingChanged)
@@ -444,6 +456,8 @@ class SettingsDialog(wx.Dialog):
         self.ducking_spin.SetValue(self.current_settings.get("mp3_audio_ducking_level_db", -15))
         self.keep_original_checkbox.SetValue(bool(self.current_settings.get("export_keep_original_audio", False)))
         self._sync_ducking_level_visibility()
+        from ..utils.shell_menu import is_registered
+        self.context_menu_checkbox.SetValue(is_registered())
         
         self.settings_changed = False
         self.apply_button.Disable()
@@ -456,8 +470,16 @@ class SettingsDialog(wx.Dialog):
 
     def _fill_analysis_models(self, provider_id, selected_id=""):
         from ..core.analysis_providers import FALLBACK_MODELS
-        models = [(model_id, model_id) for model_id in FALLBACK_MODELS.get(provider_id, ())]
-        models.append((self._analysis_custom_id, _("Custom model name")))
+        from ..core.local_model import LOCAL_MODELS
+        if provider_id == "local":
+            labels = {
+                "qwen25vl-3b": _("Qwen2.5-VL 3B, about 3 GB, 8 GB of RAM"),
+                "qwen25vl-7b": _("Qwen2.5-VL 7B, about 6 GB, 16 GB of RAM"),
+            }
+            models = [(item["id"], labels.get(item["id"], item["label"])) for item in LOCAL_MODELS]
+        else:
+            models = [(model_id, model_id) for model_id in FALLBACK_MODELS.get(provider_id, ())]
+            models.append((self._analysis_custom_id, _("Custom model name")))
         self._analysis_model_ids = [item[0] for item in models]
         self.analysis_model_choice.Clear()
         for _model_id, label in models:
@@ -471,11 +493,20 @@ class SettingsDialog(wx.Dialog):
     def _show_analysis_extras(self):
         provider_id = self.analysis_provider_ids[max(0, self.analysis_provider_choice.GetSelection())]
         custom = self._analysis_selection_is_custom()
-        needs_own_key = provider_id not in ("gemini", "openai")
-        self.analysis_custom_label.Show(custom)
-        self.model_override_text.Show(custom)
+        local = provider_id == "local"
+        needs_own_key = provider_id not in ("gemini", "openai", "local")
+        self.analysis_custom_label.Show(custom and not local)
+        self.model_override_text.Show(custom and not local)
         self.analysis_key_label.Show(needs_own_key)
         self.analysis_key_text.Show(needs_own_key)
+        self.local_note.Show(local)
+        installed = False
+        if local:
+            from ..core.local_model import is_installed
+            model_id = self._analysis_model_ids[max(0, self.analysis_model_choice.GetSelection())]
+            installed = is_installed(model_id)
+        self.local_download_button.Show(local and not installed)
+        self.local_remove_button.Show(local and installed)
         self.ai_panel.Layout()
 
     def _load_analysis_controls(self):
@@ -505,8 +536,25 @@ class SettingsDialog(wx.Dialog):
     def OnAnalysisProviderChanged(self, event):
         provider_id = self.analysis_provider_ids[self.analysis_provider_choice.GetSelection()]
         self._fill_analysis_models(provider_id)
-        self.analysis_model_choice.SetFocus()
+        if provider_id == "local" and self.local_download_button.IsShown():
+            self.local_download_button.SetFocus()
+        else:
+            self.analysis_model_choice.SetFocus()
         self.OnSettingChanged(event)
+
+    def OnDownloadLocal(self, event):
+        from .model_download_dialog import download_local_model
+        model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
+        if download_local_model(self, model_id):
+            self._show_analysis_extras()
+        event.Skip()
+
+    def OnRemoveLocal(self, event):
+        from ..core.local_model import remove_model
+        model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
+        remove_model(model_id)
+        self._show_analysis_extras()
+        event.Skip()
 
     def OnAnalysisModelChanged(self, event):
         self._show_analysis_extras()
@@ -690,6 +738,9 @@ class SettingsDialog(wx.Dialog):
         self.current_settings["enable_video_chunking"] = self.enable_chunking_checkbox.IsChecked()
         self.current_settings["video_chunk_duration_seconds"] = self.chunk_duration_spin.GetValue()
         self.current_settings["enable_character_glossary"] = self.enable_character_glossary_checkbox.IsChecked()
+        self.current_settings["context_menu_enabled"] = self.context_menu_checkbox.IsChecked()
+        from ..utils.shell_menu import apply_shell_menu
+        apply_shell_menu(self.context_menu_checkbox.IsChecked())
         
         self._save_narration_controls()
         if self._narration_provider_id() != "openai":

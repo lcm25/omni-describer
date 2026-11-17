@@ -41,6 +41,7 @@ RequestExecutionLevel user
 
 !macro RegisterAssoc EXT
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}" "" "${SHELLLABEL}"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}" "MultiSelectModel" "Player"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}\command" "" '"$INSTDIR\${APPEXE}" "%1"'
 !macroend
 !macro UnregisterAssoc EXT
@@ -394,6 +395,8 @@ Section "Principal" SecPrincipal
   !insertmacro RegisterAssoc ".ts"
   !insertmacro RegisterAssoc ".m4v"
   !insertmacro RegisterAssoc ".divx"
+  !insertmacro RegisterAssoc "image"
+  !insertmacro RegisterAssoc "video"
   CreateShortcut "$APPDATA\Microsoft\Windows\SendTo\${SENDTO}" "$INSTDIR\${APPEXE}"
 
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayName" "${APPDISPLAY}"
@@ -455,6 +458,8 @@ Section "Uninstall"
   !insertmacro UnregisterAssoc ".ts"
   !insertmacro UnregisterAssoc ".m4v"
   !insertmacro UnregisterAssoc ".divx"
+  !insertmacro UnregisterAssoc "image"
+  !insertmacro UnregisterAssoc "video"
   DeleteRegKey HKCU "${UNINSTKEY}"
   Delete "$INSTDIR\Desinstalar.exe"
   RMDir "$INSTDIR"

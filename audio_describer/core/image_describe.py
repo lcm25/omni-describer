@@ -22,6 +22,8 @@ def gemini_image_parts(prompt, frames):
 
 def image_request(provider_id, model, api_key, prompt, frames):
     from .analysis_providers import build_request
+    if provider_id == "local":
+        return {"provider": "local", "offline": True, "model": model}
     if provider_id == "twelvelabs":
         raise ImageDescribeError("twelvelabs")
     if provider_id == "gemini":
@@ -45,6 +47,9 @@ def describe_frames(frames, prompt):
 
     provider_id = active_analysis_provider(config_model.get_setting)
     model = _analysis_model_name(provider_id)
+    if provider_id == "local":
+        from .local_model import describe_local
+        return describe_local(frames, prompt)
     if provider_id == "twelvelabs":
         raise ImageDescribeError("twelvelabs")
     if provider_id == "gemini":

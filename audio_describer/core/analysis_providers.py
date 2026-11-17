@@ -22,6 +22,7 @@ ANALYSIS_PROVIDERS = (
     {"id": "qwen", "label": "Qwen (DashScope)", "native_video": False},
     {"id": "openrouter", "label": "OpenRouter", "native_video": False},
     {"id": "twelvelabs", "label": "Twelve Labs", "native_video": True},
+    {"id": "local", "label": "Local (on this computer, offline)", "native_video": False},
 )
 
 FALLBACK_MODELS = {
@@ -32,6 +33,7 @@ FALLBACK_MODELS = {
     "qwen": ("qwen-vl-max", "qwen2.5-vl-72b-instruct"),
     "openrouter": ("google/gemini-2.5-flash", "openai/gpt-4o"),
     "twelvelabs": ("pegasus1.2",),
+    "local": ("qwen25vl-3b", "qwen25vl-7b"),
 }
 
 CUSTOM_MODEL = "__custom__"
@@ -47,6 +49,7 @@ def ui_label(text):
         "Qwen (DashScope)": tr("Qwen (DashScope)"),
         "OpenRouter": tr("OpenRouter"),
         "Twelve Labs": tr("Twelve Labs"),
+        "Local (on this computer, offline)": tr("Local (on this computer, offline)"),
     }.get(text, text)
 MAX_FRAMES = 8
 

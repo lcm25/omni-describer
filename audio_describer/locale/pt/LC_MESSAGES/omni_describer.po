@@ -2611,3 +2611,48 @@ msgstr "Vídeo e imagens"
 
 msgid "Video files"
 msgstr "Ficheiros de vídeo"
+
+msgid "%d percent."
+msgstr "%d por cento."
+
+msgid "&Download local model"
+msgstr "Transferir &modelo local"
+
+msgid "&Remove model"
+msgstr "&Remover modelo"
+
+msgid "Add to the Windows &context menu"
+msgstr "Adicionar ao menu de &contexto do Windows"
+
+msgid "Cancelled."
+msgstr "Cancelado."
+
+msgid "Download local model"
+msgstr "Transferir modelo local"
+
+msgid "Hear the &percent"
+msgstr "Ouvir a &percentagem"
+
+msgid "Model ready."
+msgstr "Modelo pronto."
+
+msgid "Not enough disk space."
+msgstr "Sem espaço em disco."
+
+msgid "On this computer, offline. Slower and less detailed than the cloud. Video is a few frames only."
+msgstr "Neste computador, sem internet. Mais lento e menos detalhado do que a nuvem. O vídeo entra só por alguns fotogramas."
+
+msgid "Qwen2.5-VL 3B, about 3 GB, 8 GB of RAM"
+msgstr "Qwen2.5-VL 3B, cerca de 3 GB, 8 GB de RAM"
+
+msgid "Qwen2.5-VL 7B, about 6 GB, 16 GB of RAM"
+msgstr "Qwen2.5-VL 7B, cerca de 6 GB, 16 GB de RAM"
+
+msgid "The download did not match."
+msgstr "A transferência não confere."
+
+msgid "The local model is not installed."
+msgstr "O modelo local não está instalado."
+
+msgid "Local (on this computer, offline)"
+msgstr "Local (neste computador, sem internet)"

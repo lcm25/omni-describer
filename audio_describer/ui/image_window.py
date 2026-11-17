@@ -17,6 +17,8 @@ from ..core.tts_engine import TTSError, synthesize_description_to_wav
 def _short_error(exc):
     if isinstance(exc, ImageDescribeError) and str(exc) == "twelvelabs":
         return _("This model does not describe images.")
+    if isinstance(exc, ImageDescribeError) and str(exc) == "missing":
+        return _("The local model is not installed.")
     text = str(exc).lower()
     if "api key" in text or "not configured" in text or "key required" in text:
         return _("The AI key is missing.")

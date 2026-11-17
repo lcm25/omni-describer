@@ -64,6 +64,26 @@ class AudioDescriberApp(wx.App):
         from audio_describer.ui.main_window import MainWindow 
         import audio_describer.config as app_config
         from audio_describer.ui.accessibility_utils import speak_message, ACCESSIBLE_OUTPUT_AVAILABLE
+        from audio_describer.utils import single_instance
+
+        launch_paths = [arg for arg in sys.argv[1:] if not str(arg).startswith("-") and os.path.isfile(arg)]
+        if single_instance.forward(launch_paths):
+            return False
+        self._remote_paths = []
+
+        def _on_remote(paths):
+            def deliver():
+                frame = getattr(self, "main_frame", None)
+                if frame:
+                    if paths:
+                        frame.open_paths(paths)
+                    else:
+                        frame.Raise()
+                else:
+                    self._remote_paths.extend(paths)
+            wx.CallAfter(deliver)
+
+        single_instance.listen(_on_remote)
         
         app_logger.info("Core components loaded. Initializing main window.")
 
@@ -84,9 +104,9 @@ class AudioDescriberApp(wx.App):
         self.main_frame = MainWindow(None, title=window_title)
         self.SetTopWindow(self.main_frame)
         self.main_frame.Show(True)
-        launch_paths = [arg for arg in sys.argv[1:] if not arg.startswith("-") and os.path.isfile(arg)]
-        if launch_paths:
-            wx.CallAfter(self.main_frame.open_paths, launch_paths)
+        queued = list(launch_paths) + list(self._remote_paths)
+        if queued:
+            wx.CallAfter(self.main_frame.open_paths, queued)
 
         # Show settings migration warning if there was an issue
         load_warning = config_model.get_load_warning()

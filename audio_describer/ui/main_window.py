@@ -343,18 +343,36 @@ class MainWindow(wx.Frame):
 
     def open_paths(self, paths):
         from ..core.image_files import is_image_path, is_video_path
-        if not self.btn_local_file.IsEnabled():
+        paths = [path for path in paths if os.path.isfile(path)]
+        if not paths:
             return
-        images = [path for path in paths if is_image_path(path) and os.path.isfile(path)]
-        videos = [path for path in paths if is_video_path(path) and os.path.isfile(path)]
+        if not self.btn_local_file.IsEnabled():
+            self._pending_paths = getattr(self, "_pending_paths", []) + list(paths)
+            return
+        images = [path for path in paths if is_image_path(path)]
+        videos = [path for path in paths if is_video_path(path)]
+        self._video_queue = videos[1:] if videos else []
         if images:
+            self._videos_after_images = videos
+            self._video_queue = []
             self.describe_images(images)
             return
         if videos:
-            self.start_processing_thread(
-                video_processor.process_local_file, (videos[0],),
-                self.prompt_display_text.GetValue(), _("Preparing local file..."),
-            )
+            self._start_video(videos[0])
+
+    def _start_video(self, path):
+        from ..core.analysis_providers import active_analysis_provider
+        from ..models import config_model
+        initial = _("Preparing local file...")
+        if active_analysis_provider(config_model.get_setting) == "local":
+            initial = _("Describing...")
+        self.start_processing_thread(video_processor.process_local_file, (path,), self.prompt_display_text.GetValue(), initial)
+
+    def _flush_pending(self):
+        pending = getattr(self, "_pending_paths", None)
+        if pending and self.btn_local_file.IsEnabled():
+            self._pending_paths = []
+            self.open_paths(pending)
 
     def describe_images(self, paths):
         from .image_window import read_image
@@ -377,6 +395,13 @@ class MainWindow(wx.Frame):
         from .image_window import present_images
         self.toggle_ui_elements(enable=True)
         present_images(self, items)
+        videos = getattr(self, "_videos_after_images", None) or []
+        self._videos_after_images = []
+        if videos:
+            self._video_queue = videos[1:]
+            self._start_video(videos[0])
+            return
+        self._flush_pending()
 
     def on_open_url(self, event):
         video_url = file_dialogs.show_url_input_dialog(
@@ -463,7 +488,9 @@ class MainWindow(wx.Frame):
                     video_for_ai, chunk_duration, user_prompt, ui_status_updater
                 )
             else:
-                wx.CallAfter(self.set_processing_status, status_message, sound_file="going.mp3")
+                from ..core.analysis_providers import active_analysis_provider
+                local = active_analysis_provider(config_model.get_setting) == "local"
+                wx.CallAfter(self.set_processing_status, status_message, sound_file="going.mp3", speak=not local)
                 all_descriptions, character_glossary, main_usage = audio_describer.generate_descriptions_and_glossary(video_for_ai, user_prompt, ui_status_updater)
                 if main_usage:
                     all_descriptions_token_usage.append(main_usage)
@@ -548,7 +575,14 @@ class MainWindow(wx.Frame):
                 if self.is_temp_video and self.current_video_path:
                     video_processor.cleanup_temp_file(self.current_video_path)
             
-            self.set_processing_status(_("Ready for next video."))
+            self.set_processing_status(_("Ready for next video."), speak=False)
+            queue = getattr(self, "_video_queue", None) or []
+            if queue:
+                nxt = queue.pop(0)
+                self._video_queue = queue
+                self._start_video(nxt)
+                return
+            self._flush_pending()
         else:
             sound_player.play("error.mp3")
             no_desc_msg = _("Processing complete, but the AI did not generate any descriptions for this video.")
