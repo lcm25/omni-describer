@@ -1,4 +1,6 @@
 wxPython>=4.2.5
+pillow
+pillow-heif
 # Gemini API. The legacy google-generativeai package is not used.
 google-genai
 accessible-output2

@@ -34,19 +34,27 @@ def show_open_video_dialog(parent_window, wildcard_str):
     Shows a file dialog to select a local video file.
     Returns the selected file path or None if canceled.
     """
-    # Mark dialog title for translation
-    dialog_title = _("Open Local Video File")
+    paths = show_open_files_dialog(parent_window, wildcard_str, multiple=False, title=_("Open Local Video File"))
+    return paths[0] if paths else None
+
+
+def show_open_files_dialog(parent_window, wildcard_str, multiple=False, title=None):
+    """Open one file, or several when multiple is set. Returns a list."""
+    dialog_title = title or _("Open Local File")
+    style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+    if multiple:
+        style |= wx.FD_MULTIPLE
     with wx.FileDialog(
         parent_window,
-        # Message and title are arguments to wx.FileDialog, use the translated string
         message=dialog_title,
         wildcard=wildcard_str,
-        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        style=style,
     ) as file_dialog:
         if file_dialog.ShowModal() == wx.ID_CANCEL:
-            return None
-        path = file_dialog.GetPath()
-        return path
+            return []
+        if multiple:
+            return list(file_dialog.GetPaths())
+        return [file_dialog.GetPath()]
 
 def show_url_input_dialog(parent_window, title, initial_message="Enter URL:", is_youtube=False):
     """

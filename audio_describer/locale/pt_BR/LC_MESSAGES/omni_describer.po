@@ -2532,3 +2532,63 @@ msgstr "Nível da redução (-dB):"
 
 msgid "&Keep the original audio as a second track"
 msgstr "&Manter o áudio original como segunda faixa"
+
+msgid "%s, failed"
+msgstr "%s, falhou"
+
+msgid "&Open Local File...\tCtrl+O"
+msgstr "&Abrir arquivo local...\tCtrl+O"
+
+msgid "A photo, sticker, meme, or gif."
+msgstr "Uma foto, figurinha, meme ou gif."
+
+msgid "Ask about the image"
+msgstr "Perguntar sobre a imagem"
+
+msgid "Could not describe the image."
+msgstr "Não deu para descrever."
+
+msgid "Could not narrate."
+msgstr "Não deu para narrar."
+
+msgid "Describe a photo or &sticker"
+msgstr "Descrever foto ou fi&gurinha"
+
+msgid "Describe an image copied to the clipboard"
+msgstr "Descrever uma imagem copiada"
+
+msgid "Describe clipboard &image\tCtrl+Shift+V"
+msgstr "Descrever &imagem da área de transferência\tCtrl+Shift+V"
+
+msgid "Describing..."
+msgstr "Descrevendo..."
+
+msgid "Images"
+msgstr "Imagens"
+
+msgid "No image on the clipboard."
+msgstr "Não há imagem."
+
+msgid "Open Local File"
+msgstr "Abrir arquivo"
+
+msgid "Open a local video or image"
+msgstr "Abrir um vídeo ou uma imagem"
+
+msgid "Open photo or sticker"
+msgstr "Abrir foto ou figurinha"
+
+msgid "Photos and stickers"
+msgstr "Fotos e figurinhas"
+
+msgid "The AI key is missing."
+msgstr "Falta a chave da IA."
+
+msgid "This model does not describe images."
+msgstr "Este modelo não descreve imagem."
+
+msgid "Video and images"
+msgstr "Vídeo e imagens"
+
+msgid "Video files"
+msgstr "Arquivos de vídeo"

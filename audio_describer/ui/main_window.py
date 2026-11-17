@@ -30,6 +30,15 @@ class ProcessingDoneEvent(wx.PyEvent):
 
 EVT_PROCESSING_DONE = wx.PyEventBinder(EVT_PROCESSING_DONE_ID, 1)
 
+class _FileDrop(wx.FileDropTarget):
+    def __init__(self, window):
+        super().__init__()
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        wx.CallAfter(self.window.open_paths, list(filenames))
+        return True
+
 class MainWindow(wx.Frame):
     def __init__(self, parent, title=_("Audio Describer")):
         super(MainWindow, self).__init__(parent, title=title, size=config.DEFAULT_WINDOW_SIZE)
@@ -133,7 +142,8 @@ class MainWindow(wx.Frame):
         # --- Menu Bar ---
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
-        self.menu_open_local = file_menu.Append(wx.ID_OPEN, _("&Open Local Video...\tCtrl+O"), _("Open a local video file"))
+        self.menu_open_local = file_menu.Append(wx.ID_OPEN, _("&Open Local File...\tCtrl+O"), _("Open a local video or image"))
+        self.menu_clipboard_image = file_menu.Append(wx.ID_ANY, _("Describe clipboard &image\tCtrl+Shift+V"), _("Describe an image copied to the clipboard"))
         self.menu_open_url = file_menu.Append(wx.ID_ANY, _("Open Video from &URL...\tCtrl+U"), _("Open a video from a direct URL"))
         self.menu_open_youtube = file_menu.Append(wx.ID_ANY, _("Open from &YouTube...\tCtrl+Y"), _("Open a video from YouTube"))
         file_menu.AppendSeparator()
@@ -165,6 +175,10 @@ class MainWindow(wx.Frame):
         self.btn_local_file = wx.Button(self.panel, label=_("&Local Video File"))
         set_control_accessible_name(self.btn_local_file, _("Process a local video file"))
         top_sizer.Add(self.btn_local_file, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.btn_photo = wx.Button(self.panel, label=_("Describe a photo or &sticker"))
+        self.btn_photo.Bind(wx.EVT_SET_FOCUS, self.on_photo_focus)
+        top_sizer.Add(self.btn_photo, 0, wx.ALL | wx.EXPAND, 5)
 
         self.btn_direct_url = wx.Button(self.panel, label=_("Direct Video &URL"))
         set_control_accessible_name(self.btn_direct_url, _("Process a video from a direct web URL"))
@@ -219,6 +233,8 @@ class MainWindow(wx.Frame):
 
     def bind_events(self):
         self.Bind(wx.EVT_MENU, self.on_open_local_file, self.menu_open_local)
+        self.Bind(wx.EVT_MENU, self.on_clipboard_image, self.menu_clipboard_image)
+        self.panel.SetDropTarget(_FileDrop(self))
         self.Bind(wx.EVT_MENU, self.on_open_url, self.menu_open_url)
         self.Bind(wx.EVT_MENU, self.on_open_youtube, self.menu_open_youtube)
         self.Bind(wx.EVT_MENU, self.on_manage_prompts, self.menu_manage_prompts)
@@ -231,6 +247,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open_license, self.menu_license)
         self.Bind(wx.EVT_MENU, self.on_about, self.menu_about)
         self.btn_local_file.Bind(wx.EVT_BUTTON, self.on_open_local_file)
+        self.btn_photo.Bind(wx.EVT_BUTTON, self.on_open_photo)
         self.btn_direct_url.Bind(wx.EVT_BUTTON, self.on_open_url)
         self.btn_youtube_url.Bind(wx.EVT_BUTTON, self.on_open_youtube)
         self.prompt_choice.Bind(wx.EVT_CHOICE, self.on_prompt_selected)
@@ -298,10 +315,68 @@ class MainWindow(wx.Frame):
         elif value == 0: self.statusBar.SetStatusText(_("Processing..."), field)
         elif 0 < value <= 100: self.statusBar.SetStatusText(_("%s%%") % value, field)
 
+    def on_photo_focus(self, event):
+        speak_message(_("A photo, sticker, meme, or gif."))
+        event.Skip()
+
     def on_open_local_file(self, event):
-        file_path = file_dialogs.show_open_video_dialog(self, config.SUPPORTED_VIDEO_FORMATS)
-        if file_path:
-            self.start_processing_thread(video_processor.process_local_file, (file_path,), self.prompt_display_text.GetValue(), _("Preparing local file..."))
+        from ..core.image_files import media_dialog_wildcard
+        paths = file_dialogs.show_open_files_dialog(self, media_dialog_wildcard(), multiple=True, title=_("Open Local File"))
+        if paths:
+            self.open_paths(paths)
+
+    def on_open_photo(self, event):
+        from ..core.image_files import image_dialog_wildcard
+        paths = file_dialogs.show_open_files_dialog(
+            self, image_dialog_wildcard(), multiple=True, title=_("Open photo or sticker"),
+        )
+        if paths:
+            self.open_paths(paths)
+
+    def on_clipboard_image(self, event):
+        from .image_window import clipboard_image_path
+        path = clipboard_image_path()
+        if not path:
+            speak_message(_("No image on the clipboard."))
+            return
+        self.open_paths([path])
+
+    def open_paths(self, paths):
+        from ..core.image_files import is_image_path, is_video_path
+        if not self.btn_local_file.IsEnabled():
+            return
+        images = [path for path in paths if is_image_path(path) and os.path.isfile(path)]
+        videos = [path for path in paths if is_video_path(path) and os.path.isfile(path)]
+        if images:
+            self.describe_images(images)
+            return
+        if videos:
+            self.start_processing_thread(
+                video_processor.process_local_file, (videos[0],),
+                self.prompt_display_text.GetValue(), _("Preparing local file..."),
+            )
+
+    def describe_images(self, paths):
+        from .image_window import read_image
+        speak_message(_("Describing..."))
+        self.toggle_ui_elements(enable=False)
+
+        def work():
+            items = []
+            for path in paths:
+                try:
+                    items.append(read_image(path))
+                except Exception as exc:
+                    app_logger.error("Image describe failed for %s: %s", path, exc, exc_info=True)
+                    items.append({"path": path, "frames": [], "animated": False, "text": "", "error": exc})
+            wx.CallAfter(self._images_ready, items)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _images_ready(self, items):
+        from .image_window import present_images
+        self.toggle_ui_elements(enable=True)
+        present_images(self, items)
 
     def on_open_url(self, event):
         video_url = file_dialogs.show_url_input_dialog(
@@ -485,6 +560,7 @@ class MainWindow(wx.Frame):
 
     def toggle_ui_elements(self, enable=True):
         self.btn_local_file.Enable(enable)
+        self.btn_photo.Enable(enable)
         self.btn_direct_url.Enable(enable)
         self.btn_youtube_url.Enable(enable)
         self.prompt_choice.Enable(enable)

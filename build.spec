@@ -33,6 +33,7 @@ hidden_imports = [
     'openai',
     'grpc._cython',
     'accessible_output2',
+    *collect_submodules('PIL'),
     'vlc',  # python-vlc binding; imported lazily inside a try/except so add it
             # explicitly. The libvlc runtime itself is bundled into bin/vlc by CI.
 ]

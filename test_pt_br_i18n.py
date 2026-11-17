@@ -159,11 +159,13 @@ def check_catalog():
 
     groups = {
         "main": [
-            "&File", "&Help", "&Local Video File", "Direct Video &URL",
+            "&File", "&Help", "&Local Video File", "Describe a photo or &sticker",
+            "Direct Video &URL",
             "&YouTube Video URL", "Open &Web Platform", "&Settings...", "E&xit",
         ],
         "file_menu": [
-            "&Open Local Video...\tCtrl+O", "Open Video from &URL...\tCtrl+U",
+            "&Open Local File...\tCtrl+O", "Describe clipboard &image\tCtrl+Shift+V",
+            "Open Video from &URL...\tCtrl+U",
             "Open from &YouTube...\tCtrl+Y", "Manage &Prompt Presets...",
             "Open &Web Platform...\tCtrl+W", "&Settings...\tCtrl+,", "E&xit\tAlt+F4",
         ],

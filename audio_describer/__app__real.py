@@ -84,6 +84,9 @@ class AudioDescriberApp(wx.App):
         self.main_frame = MainWindow(None, title=window_title)
         self.SetTopWindow(self.main_frame)
         self.main_frame.Show(True)
+        launch_paths = [arg for arg in sys.argv[1:] if not arg.startswith("-") and os.path.isfile(arg)]
+        if launch_paths:
+            wx.CallAfter(self.main_frame.open_paths, launch_paths)
 
         # Show settings migration warning if there was an issue
         load_warning = config_model.get_load_warning()
