@@ -150,6 +150,7 @@ class EditDescriptionDialog(wx.Dialog):
         
         self.update_edit_fields_from_combo()
         self.OnPageChanged(None) # Set initial state
+        wx.CallAfter(self.desc_combo.SetFocus)
 
     def OnPageChanged(self, event):
         is_desc_page = self.notebook.GetSelection() == 0
@@ -369,7 +370,8 @@ class EditDescriptionDialog(wx.Dialog):
             self.desc_combo.SetSelection(self.find_combo_item_by_original_index(current_idx))
             self.update_edit_fields_from_combo()
 
-            wx.MessageBox(_("Changes saved."), _("Success"), wx.OK | wx.ICON_INFORMATION, self)
+            from .accessibility_utils import speak_message
+            speak_message(_("Changes saved."))
 
         except (ValueError, TypeError) as e:
             wx.MessageBox(str(e), _("Validation Error"), wx.OK | wx.ICON_ERROR, self)

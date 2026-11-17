@@ -56,6 +56,13 @@ def format_time_for_srt(total_seconds):
     milliseconds = delta.microseconds // 1000
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
+def start_mp3_export(player_instance):
+    """Most common export: MP3 save dialog, then mix. No format chooser."""
+    if not player_instance.descriptions:
+        wx.MessageBox(gettext_("No descriptions to export."), gettext_("Export Note"), wx.OK | wx.ICON_INFORMATION, player_instance)
+        return
+    _handle_av_export(player_instance, {"category": "av", "format": "mp3_ducked"})
+
 def start_export_process(player_instance):
     if not player_instance.descriptions:
         wx.MessageBox(gettext_("No descriptions to export."), gettext_("Export Note"), wx.OK | wx.ICON_INFORMATION, player_instance); return
@@ -94,7 +101,9 @@ def _handle_text_export(player_instance, options):
                 elif file_format == 'txt_line':
                     for _, _, text in descriptions:
                         f.write(f"{text}\n")
-            wx.MessageBox(gettext_("File successfully exported to:\n%s") % pathname, gettext_("Export Successful"), wx.OK | wx.ICON_INFORMATION, player_instance)
+            from .accessibility_utils import speak_message
+            speak_message(gettext_("Saved."))
+            app_logger.info("Exported text file: %s", pathname)
         except IOError as e:
             wx.MessageBox(gettext_("Error saving file: %s") % e, gettext_("Export Error"), wx.OK | wx.ICON_ERROR, player_instance)
 

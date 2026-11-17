@@ -3,7 +3,14 @@
 
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+import sys
 from PyInstaller.utils.hooks import collect_submodules, collect_all, copy_metadata
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(SPEC)))
+from audio_describer.config import app_file_slug
+
+APP_SLUG = app_file_slug()
 
 # google.genai (the new SDK) is a namespace package with data files and lazily
 # imported submodules; collect_all grabs modules + data + binaries so the frozen
@@ -18,7 +25,6 @@ genai_datas += copy_metadata('google-genai')
 # Part 1: Gather all the necessary Python modules.
 hidden_imports = [
     *genai_hiddenimports,
-    *collect_submodules('google.generativeai'),
     *collect_submodules('google.api_core'),
     *collect_submodules('google.auth'),
     *collect_submodules('cryptography'),
@@ -69,7 +75,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='omni_describer',
+    name=APP_SLUG,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -91,5 +97,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='omni_describer_dist',
+    name=APP_SLUG + '_dist',
 )

@@ -17,6 +17,12 @@ def main():
     """
     The main entry point for the application, with robust two-stage crash handling.
     """
+    if "--self-check" in sys.argv:
+        from audio_describer import config as app_config
+        print(app_config.APP_NAME)
+        print(app_config.APP_VERSION)
+        print("self-check-ok")
+        return 0
     try:
         # --- Stage 1: Initial Setup (before logger is fully configured) ---
         if getattr(sys, 'frozen', False):

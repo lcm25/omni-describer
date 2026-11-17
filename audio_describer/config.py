@@ -57,13 +57,30 @@ APP_NAME_TRANSLATABLE = APP_NAME_BASE_UNTRANSLATED
 # Include a space if you want one between the prefix and the translatable name.
 APP_NAME_FIXED_PREFIX = "Omni " 
 
+# User-facing name. Window titles, About, the installer and the exe follow this.
+# Do not point the settings folder at it: APP_DATA_DIR_NAME stays "Describer"
+# so existing installs keep their files.
+APP_NAME = "Omni Describer"
+
+def app_file_slug(name=None):
+    """Filesystem-safe name derived from APP_NAME. 'Omni Describer' -> omni_describer."""
+    raw = APP_NAME if name is None else name
+    slug = "".join(ch.lower() if ch.isalnum() else "_" for ch in raw)
+    while "__" in slug:
+        slug = slug.replace("__", "_")
+    return slug.strip("_") or "app"
+
 APP_VERSION = "2.1.0"
 
+# Settings stay in this folder name even if APP_NAME changes.
+APP_DATA_DIR_NAME = "Describer"
+
+def portable_marker_name():
+    return "portable.txt"
+
 # --- Auto-update (GitHub Releases) ---
-# The updater reads the latest GitHub release and pulls its assets. The release
-# workflow publishes assets under fixed names (omni_describer.zip, updater.exe),
-# so these /latest/download/ URLs stay valid across every version.
-GITHUB_REPO = "audioses/omni-describer"
+# This fork. A build must not download the upstream audioses packages.
+GITHUB_REPO = "lcm25/omni-describer"
 VERSION_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/omni_describer.zip"
 UPDATER_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/updater.exe"

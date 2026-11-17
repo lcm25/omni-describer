@@ -1,6 +1,7 @@
 # audio_describer/models/config_model.py
 import json
 import os
+import sys
 import base64
 from audio_describer import config
 
@@ -13,12 +14,26 @@ from audio_describer import config
 _OBFUSCATION_KEY = b"OmniDescriberSettingsKey2026!@#xK9"
 
 # --- File Paths ---
-if os.name == 'nt':
+def _portable_data_dir():
+    """When portable.txt sits next to the frozen exe, keep settings beside it."""
+    if not getattr(sys, "frozen", False):
+        return None
+    exe_dir = os.path.dirname(sys.executable)
+    marker = os.path.join(exe_dir, config.portable_marker_name())
+    if os.path.isfile(marker):
+        return os.path.join(exe_dir, "Dados")
+    return None
+
+_portable = _portable_data_dir()
+if _portable:
+    APP_DATA_BASE_DIR = os.path.dirname(_portable)
+    APP_DATA_DIR = _portable
+elif os.name == 'nt':
     APP_DATA_BASE_DIR = os.environ.get('APPDATA', os.path.expanduser("~"))
-    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, config.APP_NAME_BASE_UNTRANSLATED)
+    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, config.APP_DATA_DIR_NAME)
 else:
     APP_DATA_BASE_DIR = os.path.expanduser("~")
-    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_NAME_BASE_UNTRANSLATED.lower().replace(" ", "_"))
+    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_DATA_DIR_NAME.lower().replace(" ", "_"))
 
 try:
     if not os.path.exists(APP_DATA_DIR):

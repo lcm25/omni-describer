@@ -69,8 +69,7 @@ class AudioDescriberApp(wx.App):
 
         # --- The update checker call is now moved from here ---
         
-        translatable_part = _(app_config.APP_NAME_TRANSLATABLE)
-        full_app_display_name = app_config.APP_NAME_FIXED_PREFIX + translatable_part
+        full_app_display_name = app_config.APP_NAME
 
         app_logger.info(_("Starting %(app_name)s v%(app_version)s") % {
             "app_name": full_app_display_name, 
@@ -97,8 +96,7 @@ class AudioDescriberApp(wx.App):
                 self.main_frame
             )
 
-        # Show one-time webapp migration banner
-        self._show_webapp_banner_if_needed(config_model)
+        # The web platform stays in the File menu. No modal before the first action.
 
         # MODIFICATION: Start the update check in the background AFTER the UI is shown.
         self.StartBackgroundUpdateCheck()
@@ -185,9 +183,8 @@ class AudioDescriberApp(wx.App):
         _ = audio_describer.i18n_setup._
         import audio_describer.config as app_config
         
-        translatable_part = _(app_config.APP_NAME_TRANSLATABLE)
-        full_app_display_name = app_config.APP_NAME_FIXED_PREFIX + translatable_part
-        
+        full_app_display_name = app_config.APP_NAME
+
         app_logger.info(_("%s is shutting down.") % full_app_display_name)
         
         from audio_describer.ui.accessibility_utils import speak_message

@@ -28,7 +28,7 @@ class TestVoiceDoneEvent(wx.PyCommandEvent):
 class SettingsDialog(wx.Dialog):
     def __init__(self, parent, title=None):
         if title is None:
-            title = _("%s Settings") % (config.APP_NAME_FIXED_PREFIX + config.APP_NAME_TRANSLATABLE)
+            title = _("%s Settings") % config.APP_NAME
         
         self.YOUTUBE_QUALITY_CHOICES = [_("Best Available"), "1080p", "720p", "480p", "360p", "240p", "144p"]
         self.VERBOSITY_CHOICES = [(config.VERBOSITY_SHORT, _("Short - Concise descriptions")), (config.VERBOSITY_STANDARD, _("Standard - Balanced detail (Default)")), (config.VERBOSITY_DETAILED, _("Detailed - Rich descriptions"))]

@@ -2421,3 +2421,112 @@ msgstr "Actualiza&r lista de vozes"
 #, python-format
 msgid "%d voices."
 msgstr "%d vozes."
+
+#: a11y
+msgid "&Export"
+msgstr "&Exportar"
+
+#: a11y
+msgid "1080p. Large file."
+msgstr "1080p. Ficheiro grande."
+
+#: a11y
+msgid "144p. Smallest file."
+msgstr "144p. O ficheiro mais pequeno."
+
+#: a11y
+msgid "240p. Small file."
+msgstr "240p. Ficheiro pequeno."
+
+#: a11y
+msgid "360p. Smaller download."
+msgstr "360p. Transferência mais pequena."
+
+#: a11y
+msgid "480p. Smaller download."
+msgstr "480p. Transferência mais pequena."
+
+#: a11y
+msgid "720p. A balance of picture and size."
+msgstr "720p. Equilíbrio entre imagem e tamanho."
+
+#: a11y
+msgid "A balance of detail."
+msgstr "Um equilíbrio de detalhe."
+
+#: a11y
+msgid "Added."
+msgstr "Adicionada."
+
+#: a11y
+msgid "Based on Omni Describer by Draqoken (audioses). MIT license."
+msgstr "Baseado no Omni Describer, de Draqoken (audioses). Licença MIT."
+
+#: a11y
+msgid "Best available picture. Uses the most disk and time."
+msgstr "Melhor imagem disponível. Usa mais disco e mais tempo."
+
+#: a11y
+msgid "Five frames a second. May miss fast action."
+msgstr "Cinco fotogramas por segundo. Pode perder ação rápida."
+
+#: a11y
+msgid "Jump mode."
+msgstr "Modo de salto."
+
+#: a11y
+msgid "Longer, richer lines."
+msgstr "Linhas mais longas e ricas."
+
+#: a11y
+msgid "One frame a second."
+msgstr "Um fotograma por segundo."
+
+#: a11y
+msgid "Read &prompt"
+msgstr "Ler &prompt"
+
+#: a11y
+msgid "Read &tokens"
+msgstr "Ler &tokens"
+
+#: a11y
+#, python-format
+msgid "Ready. %d descriptions."
+msgstr "Pronto. %d descrições."
+
+#: a11y
+msgid "Saved."
+msgstr "Guardado."
+
+#: a11y
+msgid "Scene Explorer opened. Use arrow keys to move. Press D for scene description, L to list all objects, and Shift + L to enter jump mode. Escape to close. Press C for coordinates."
+msgstr "Explorador de cena aberto. Use as setas para se mover. Prima D para a descrição da cena, L para listar os objetos e Shift + L para o modo de salto. Escape fecha. Prima C para as coordenadas."
+
+#: a11y
+msgid "Send every frame. Highest cost."
+msgstr "Envia todos os fotogramas. Custo mais alto."
+
+#: a11y
+msgid "Split a long video into parts before analysis."
+msgstr "Divide um vídeo longo em partes antes da análise."
+
+#: a11y
+msgid "Ten frames a second."
+msgstr "Dez fotogramas por segundo."
+
+#: a11y
+msgid "Two frames a second."
+msgstr "Dois fotogramas por segundo."
+
+#: a11y
+msgid "Very short lines."
+msgstr "Linhas muito curtas."
+
+#: a11y
+msgid "Video"
+msgstr "Vídeo"
+
+#: a11y
+msgid "Volume"
+msgstr "Volume"

@@ -153,6 +153,8 @@ class PlayerWindow(wx.Dialog):
 
         self.video_panel = wx.Panel(self.panel, style=wx.NO_BORDER)
         self.video_panel.SetBackgroundColour(wx.BLACK)
+        self.video_panel.SetCanFocus(False)
+        set_control_accessible_name(self.video_panel, _("Video"))
         main_sizer.Add(self.video_panel, 5, wx.EXPAND | wx.ALL, 5)
 
         self.time_display_label = wx.StaticText(self.panel, label="00:00 / 00:00")
@@ -161,6 +163,8 @@ class PlayerWindow(wx.Dialog):
         slider_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.play_pause_button = wx.Button(self.panel, ID_PLAY_PAUSE, _("Play"))
         slider_play_sizer.Add(self.play_pause_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        self.export_button = wx.Button(self.panel, ID_EXPORT, _("&Export"))
+        slider_play_sizer.Add(self.export_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         
         self.seek_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=1000, style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
         set_control_accessible_name(self.seek_slider, _("Video progress slider"))
@@ -178,6 +182,7 @@ class PlayerWindow(wx.Dialog):
         
         initial_volume = int(config_model.get_setting("player_volume_percent"))
         self.volume_slider = wx.Slider(self.panel, value=initial_volume, minValue=0, maxValue=100, size=(100, -1))
+        set_control_accessible_name(self.volume_slider, _("Volume"))
         
         buttons_volume_sizer.Add(self.volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         main_sizer.Add(buttons_volume_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -190,8 +195,14 @@ class PlayerWindow(wx.Dialog):
         token_usage_label = wx.StaticText(self.panel, label=_("AI Token Usage:"))
         main_sizer.Add(token_usage_label, 0, wx.LEFT | wx.TOP | wx.EXPAND, 5)
         self.token_usage_text_ctrl = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.BORDER_STATIC)
-        self.token_usage_text_ctrl.SetMinSize((-1, 80))
-        main_sizer.Add(self.token_usage_text_ctrl, 0, wx.EXPAND | wx.ALL, 5)
+        self.token_usage_text_ctrl.SetMinSize((-1, 40))
+        self.token_usage_text_ctrl.SetCanFocus(False)
+        token_usage_label.SetCanFocus(False)
+        set_control_accessible_name(self.token_usage_text_ctrl, _("AI Token Usage:"))
+        main_sizer.Add(self.token_usage_text_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        self.token_button = wx.Button(self.panel, label=_("Read &tokens"))
+        self.token_button.Bind(wx.EVT_BUTTON, self.OnReadTokens)
+        main_sizer.Add(self.token_button, 0, wx.ALL, 5)
 
         action_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.explore_scene_button = wx.Button(self.panel, ID_EXPLORE_SCENE, _("Explore Scene..."))
@@ -204,10 +215,12 @@ class PlayerWindow(wx.Dialog):
         self.settings_button = wx.Button(self.panel, ID_SETTINGS, _("Settings..."))
         action_buttons_sizer.Add(self.settings_button, 0, wx.ALL, 5)
 
-        action_buttons_sizer.AddStretchSpacer(1)
-        self.export_button = wx.Button(self.panel, ID_EXPORT, _("Export..."))
-        action_buttons_sizer.Add(self.export_button, 0, wx.ALL, 5)
         main_sizer.Add(action_buttons_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        other_export_id = wx.NewIdRef()
+        self.Bind(wx.EVT_MENU, lambda event: player_export.start_export_process(self), id=other_export_id)
+        self.SetAcceleratorTable(wx.AcceleratorTable([
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("E"), other_export_id),
+        ]))
 
         self.panel.SetSizerAndFit(main_sizer)
         self.timer = wx.Timer(self, ID_MEDIA_TIMER)
@@ -365,59 +378,47 @@ class PlayerWindow(wx.Dialog):
                     self.currently_playing_description_index = -1
                     self.current_desc_text_ctrl.SetValue("")
 
+    def OnReadTokens(self, event):
+        text = self.token_usage_text_ctrl.GetValue().strip()
+        speak_message(text or _("No AI token usage data available yet."))
+
     def OnCloseWindow(self, event):
-        app = wx.GetApp()
-        if getattr(app, 'is_updating', False):
-            # Skip confirmation when the updater is closing the app
-            result = 2
-        else:
-            result = wx.MessageBox(_("Are you sure you want to close the player?"),
-                                   _("Confirm Close"),
-                                   wx.YES_NO | wx.ICON_QUESTION)
-            app_logger.info(f"wx.MessageBox returned: {result}") # Debug log
+        if self._is_closing:
+            return
+        self._is_closing = True
+        app_logger.info("PlayerWindow OnCloseWindow. Cleaning up.")
 
-        if result == 2: # 2 is the actual return value for Yes in this environment
-            if self._is_closing:
-                return
-            self._is_closing = True
-            app_logger.info("PlayerWindow OnCloseWindow confirmed by user. Cleaning up.")
+        if self.timer.IsRunning():
+            self.timer.Stop()
 
-            if self.timer.IsRunning():
-                self.timer.Stop()
+        if self.vlc_events:
+            try:
+                self.vlc_events.event_detach(vlc.EventType.MediaPlayerPlaying)
+                self.vlc_events.event_detach(vlc.EventType.MediaPlayerPaused)
+                self.vlc_events.event_detach(vlc.EventType.MediaPlayerEndReached)
+            except Exception as e:
+                app_logger.error(f"Error detaching VLC events: {e}")
+            finally:
+                self.vlc_events = None
 
-            if self.vlc_events:
-                try:
-                    self.vlc_events.event_detach(vlc.EventType.MediaPlayerPlaying)
-                    self.vlc_events.event_detach(vlc.EventType.MediaPlayerPaused)
-                    self.vlc_events.event_detach(vlc.EventType.MediaPlayerEndReached)
-                except Exception as e:
-                    app_logger.error(f"Error detaching VLC events: {e}")
-                finally:
-                    self.vlc_events = None
+        if self.vlc_player:
+            if self.vlc_player.is_playing():
+                self.vlc_player.stop()
+            self.vlc_player.release()
+            self.vlc_player = None
 
-            if self.vlc_player:
-                if self.vlc_player.is_playing():
-                    self.vlc_player.stop()
-                self.vlc_player.release()
-                self.vlc_player = None
+        if self.vlc_instance:
+            self.vlc_instance.release()
+            self.vlc_instance = None
 
-            if self.vlc_instance:
-                self.vlc_instance.release()
-                self.vlc_instance = None
+        if self.ask_more_dialog_instance:
+            self.ask_more_dialog_instance.Destroy()
+        if self.progress_dialog:
+            self.progress_dialog.Destroy()
+        if self.is_temp_video and self.video_path:
+            video_processor.cleanup_temp_file(self.video_path)
 
-            if self.ask_more_dialog_instance:
-                self.ask_more_dialog_instance.Destroy()
-            if self.progress_dialog:
-                self.progress_dialog.Destroy()
-            if self.is_temp_video and self.video_path:
-                video_processor.cleanup_temp_file(self.video_path)
-
-            # Defer the destruction until after this event handler has completed
-            # to ensure a clean shutdown.
-            wx.CallAfter(self.Destroy)
-        else:
-            if event.CanVeto():
-                event.Veto()  # Prevent the window from closing
+        wx.CallAfter(self.Destroy)
         
     @property
     def _media_setup_done(self):
@@ -442,7 +443,7 @@ class PlayerWindow(wx.Dialog):
         self.descriptions.append(new_description)
         self.descriptions.sort(key=lambda x: x[0])
         self.edit_descriptions_button.Enable()
-        speak_message(_("Description added to main list."))
+        speak_message(_("Added."))
         app_logger.info(f"Added new description at {current_time_sec:.2f}s: '{text_to_add[:50]}...'")
 
     def OnExploreScene(self, event):
@@ -471,7 +472,7 @@ class PlayerWindow(wx.Dialog):
 
     def OnExport(self, event):
         from . import player_export # Local import to prevent cycles
-        player_export.start_export_process(self)
+        player_export.start_mp3_export(self)
 
     def OnExportDone(self, event):
         if self.progress_dialog:
@@ -482,7 +483,8 @@ class PlayerWindow(wx.Dialog):
             title = _("Export Canceled") if isinstance(event.error, InterruptedError) else _("Export Error")
             wx.MessageBox(_("Failed to export file:\n%s") % event.error, title, wx.OK | wx.ICON_ERROR, self)
         else:
-            wx.MessageBox(_("File successfully exported to:\n%s") % event.output_path, _("Export Successful"), wx.OK | wx.ICON_INFORMATION, self)
+            speak_message(_("Saved."))
+            app_logger.info("Exported file: %s", event.output_path)
 
     def OnEditDescriptionsClick(self, event):
         if not self.vlc_player or self.vlc_player.get_length() <= 0:
