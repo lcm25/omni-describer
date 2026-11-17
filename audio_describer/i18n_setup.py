@@ -130,6 +130,22 @@ def detect_system_locale_tag():
     return tag or "en"
 
 
+def prefer_brazilian_once(saved, system_tag, already_migrated, available):
+    """Old Omni Describer stored 'pt' for every Portuguese Windows.
+
+    On a pt-BR PC that saved value is European Portuguese. Switch it to pt_BR
+    a single time. A later explicit choice of pt is left alone.
+    """
+    if already_migrated:
+        return saved, True
+    raw = str(saved or "").strip().replace("-", "_").lower()
+    if raw not in ("pt", "pt_pt"):
+        return saved, False
+    if resolve_catalog_language(system_tag, available) == "pt_BR":
+        return "pt_BR", True
+    return saved, False
+
+
 def initialize_translations():
     global _
     global wx_locale
@@ -141,6 +157,14 @@ def initialize_translations():
 
     try:
         lang_code = config_model.get_setting("application_language")
+        already = bool(config_model.get_setting("migrated_legacy_pt_language"))
+        system_tag = detect_system_locale_tag()
+        lang_code, migrated = prefer_brazilian_once(lang_code, system_tag, already, available)
+        if migrated and not already:
+            config_model.app_settings["application_language"] = lang_code
+            config_model.app_settings["migrated_legacy_pt_language"] = True
+            config_model.save_settings(config_model.app_settings)
+            app_logger.info("i18n: Saved language pt on a pt-BR system. Using pt_BR.")
 
         # Empty string means "detect on this startup".
         if not lang_code or not str(lang_code).strip():
@@ -171,7 +195,7 @@ def initialize_translations():
         config.APP_NAME_TRANSLATABLE = _(config.APP_NAME_BASE_UNTRANSLATED)
 
         app_logger.info(f"i18n: SUCCESS: Translations initialized for '{lang_code}'.")
-        app_logger.info(f"i18n: Translatable app name set to: '{config.APP_NAME_TRANSLATABLE}'")
+        app_logger.info(f"i18n: App name: '{config.APP_NAME}'.")
     except FileNotFoundError:
         app_logger.warning(f"i18n: No .mo file for lang='{lang_code}', domain='{domain}'. Using default strings.")
     except Exception as e:

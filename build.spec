@@ -21,6 +21,12 @@ genai_datas, genai_binaries, genai_hiddenimports = collect_all('google.genai')
 # the distribution is 'google-genai'. Add it explicitly so importlib.metadata
 # lookups resolve in the frozen build.
 genai_datas += copy_metadata('google-genai')
+try:
+    openai_datas, openai_binaries, openai_hiddenimports = collect_all('openai')
+except Exception:
+    openai_datas, openai_binaries, openai_hiddenimports = [], [], []
+genai_datas += openai_datas
+genai_binaries += openai_binaries
 
 # Part 1: Gather all the necessary Python modules.
 hidden_imports = [
@@ -31,6 +37,9 @@ hidden_imports = [
     'pyttsx3.drivers.sapi5',
     'pygame._sdl2.font',
     'openai',
+    *openai_hiddenimports,
+    'packaging',
+    'packaging.version',
     'grpc._cython',
     'accessible_output2',
     *collect_submodules('PIL'),

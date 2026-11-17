@@ -117,6 +117,7 @@ DEFAULT_SETTINGS = {
     "piper_voices_dir": "",
     "analysis_provider": "gemini",
     "context_menu_enabled": False,
+    "migrated_legacy_pt_language": False,
     "analysis_model": "",
     "analysis_model_custom": "",
     "analysis_api_keys": {},

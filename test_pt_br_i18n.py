@@ -16,6 +16,7 @@ from audio_describer import config
 from audio_describer.i18n_setup import (
     available_catalog_languages,
     description_language_name,
+    prefer_brazilian_once,
     resolve_catalog_language,
 )
 
@@ -126,6 +127,12 @@ def check_language_resolution():
     assert description_language_name("pt-br") == "Brazilian Portuguese"
     assert description_language_name("pt") == "European Portuguese"
     assert description_language_name("en_US") == "English"
+    available = {"pt", "pt_BR", "en"}
+    assert prefer_brazilian_once("pt", "pt_BR", False, available) == ("pt_BR", True)
+    assert prefer_brazilian_once("pt", "Portuguese_Brazil", False, available) == ("pt_BR", True)
+    assert prefer_brazilian_once("pt", "pt_PT", False, available) == ("pt", False)
+    assert prefer_brazilian_once("pt", "pt_BR", True, available) == ("pt", True)
+    assert prefer_brazilian_once("en", "pt_BR", False, available) == ("en", False)
 
 
 def check_catalog():

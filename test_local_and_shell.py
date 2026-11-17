@@ -107,6 +107,18 @@ def test_disk_space(tmp_path, monkeypatch=None):
         manager.shutil.disk_usage = original
 
 
+def test_stale_port_does_not_block(tmp_path):
+    import socket
+    probe = socket.socket()
+    probe.bind(("127.0.0.1", 0))
+    port = probe.getsockname()[1]
+    probe.close()
+    path = tmp_path / "instance.port"
+    path.write_text(str(port), encoding="ascii")
+    assert single_instance.forward(["foto.jpg"], folder=str(tmp_path)) is False
+    assert not path.exists()
+
+
 def test_single_instance(tmp_path):
     received = []
     server = single_instance.listen(received.append, folder=str(tmp_path))
@@ -129,5 +141,6 @@ if __name__ == "__main__":
     folder = Path(tempfile.mkdtemp())
     test_checksum_and_resume(folder)
     test_disk_space(folder)
+    test_stale_port_does_not_block(folder)
     test_single_instance(folder)
     print("local and shell checks passed")

@@ -12,17 +12,41 @@ def port_path(folder=None):
     return os.path.join(base, "instance.port")
 
 
+def _drop_port_file(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
 def forward(paths, folder=None, timeout=1.0):
+    """Hand paths to a live instance. A dead instance.port is removed and ignored."""
     path = port_path(folder)
+    if not os.path.isfile(path):
+        return False
     try:
         port = int(open(path, encoding="ascii").read().strip())
-        payload = json.dumps(list(paths or [])).encode("utf-8") + b"\n"
-        with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
-            sock.sendall(payload)
-            ack = sock.recv(16)
-        return ack.startswith(b"ok")
     except (OSError, ValueError):
+        _drop_port_file(path)
         return False
+    payload = json.dumps(list(paths or [])).encode("utf-8") + b"\n"
+    try:
+        sock = socket.create_connection(("127.0.0.1", port), timeout=timeout)
+    except OSError:
+        _drop_port_file(path)
+        return False
+    try:
+        sock.settimeout(timeout)
+        sock.sendall(payload)
+        ack = sock.recv(16)
+        return ack.startswith(b"ok")
+    except OSError:
+        return False
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
 
 
 def listen(handler, folder=None):

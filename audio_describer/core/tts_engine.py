@@ -53,18 +53,20 @@ class TTSError(Exception):
 SAPI5_32BIT_HELPER_NAME = "sapi32.exe"
 
 def _get_helper_path():
-    """Finds the path to the 32-bit helper executable inside the 'bin' folder."""
+    """Find sapi32.exe. The frozen build keeps it in bin next to Descritudo.exe."""
+    names = []
     if getattr(sys, 'frozen', False):
-        # In a frozen app, it's in the 'bin' folder next to the main executable's directory
+        exe_dir = os.path.dirname(sys.executable)
+        names.append(os.path.join(exe_dir, 'bin', SAPI5_32BIT_HELPER_NAME))
+        names.append(os.path.join(exe_dir, SAPI5_32BIT_HELPER_NAME))
         if hasattr(sys, '_MEIPASS'):
-            base_dir = sys._MEIPASS
-        else:
-            base_dir = os.path.dirname(sys.executable)
-        return os.path.join(base_dir, 'bin', SAPI5_32BIT_HELPER_NAME)
+            names.append(os.path.join(sys._MEIPASS, 'bin', SAPI5_32BIT_HELPER_NAME))
     else:
-        # In development, assume it's been built into the main dist folder for testing
-        base_dir = os.getcwd()
-        return os.path.join(base_dir, "dist", SAPI5_32BIT_HELPER_NAME)
+        names.append(os.path.join(os.getcwd(), "dist", SAPI5_32BIT_HELPER_NAME))
+    for path in names:
+        if os.path.isfile(path):
+            return path
+    return names[0] if names else SAPI5_32BIT_HELPER_NAME
 
 SAPI5_32BIT_HELPER_PATH = _get_helper_path()
 SAPI5_32BIT_HELPER_AVAILABLE = os.path.exists(SAPI5_32BIT_HELPER_PATH)

@@ -3,6 +3,8 @@ pillow
 pillow-heif
 # Gemini API. The legacy google-generativeai package is not used.
 google-genai
+openai
+packaging
 accessible-output2
 yt-dlp
 # python-vlc bindings for the media player; the libvlc runtime is bundled in

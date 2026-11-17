@@ -2637,3 +2637,6 @@ msgstr "O modelo local não está instalado."
 
 msgid "Local (on this computer, offline)"
 msgstr "Local (no computador, sem internet)"
+
+msgid "Descritudo could not open.\n\n%s\n\nThe log is at:\n%s"
+msgstr "O Descritudo não abriu.\n\n%s\n\nO registro está em:\n%s"
