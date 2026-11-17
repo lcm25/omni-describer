@@ -1,6 +1,8 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Licencia y Términos de Uso
 
-¡Gracias por usar Omni Describer! Al utilizar este software, aceptas los siguientes términos sencillos:
+¡Gracias por usar Descritudo! Al utilizar este software, aceptas los siguientes términos sencillos:
 
 1. Usa con responsabilidad
    Esta herramienta está diseñada para ayudar a crear descripciones de audio para videos y otros contenidos. Por favor, úsala de manera ética y respeta los derechos de autor y los derechos de los demás.

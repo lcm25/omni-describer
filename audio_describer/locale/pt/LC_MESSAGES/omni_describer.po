@@ -2459,8 +2459,8 @@ msgid "Added."
 msgstr "Adicionada."
 
 #: a11y
-msgid "Based on Omni Describer by Draqoken (audioses). MIT license."
-msgstr "Baseado no Omni Describer, de Draqoken (audioses). Licença MIT."
+msgid "Based on Omni Describer, created by Draqoken (audioses), MIT license."
+msgstr "Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT."
 
 #: a11y
 msgid "Best available picture. Uses the most disk and time."

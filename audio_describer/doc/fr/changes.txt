@@ -1,3 +1,5 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 v1.1
 
 Cette mise à jour contient des correctifs critiques et une nouvelle fonctionnalité.

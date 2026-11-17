@@ -57,14 +57,14 @@ APP_NAME_TRANSLATABLE = APP_NAME_BASE_UNTRANSLATED
 # Include a space if you want one between the prefix and the translatable name.
 APP_NAME_FIXED_PREFIX = "Omni " 
 
-# User-facing name. Window titles, About, the installer and the exe follow this.
-# Do not point the settings folder at it: APP_DATA_DIR_NAME stays "Describer"
-# so existing installs keep their files.
-APP_NAME = "Omni Describer"
+# User-facing name. Titles, About, help, the exe and the installer follow this.
+APP_NAME = "Descritudo"
+# Exe file name without extension. "Descritudo" -> Descritudo.exe
+APP_EXE_BASENAME = APP_NAME
 
 def app_file_slug(name=None):
-    """Filesystem-safe name derived from APP_NAME. 'Omni Describer' -> omni_describer."""
-    raw = APP_NAME if name is None else name
+    """Lowercase filesystem slug. Kept for older call sites."""
+    raw = APP_EXE_BASENAME if name is None else name
     slug = "".join(ch.lower() if ch.isalnum() else "_" for ch in raw)
     while "__" in slug:
         slug = slug.replace("__", "_")
@@ -72,8 +72,9 @@ def app_file_slug(name=None):
 
 APP_VERSION = "2.1.0"
 
-# Settings stay in this folder name even if APP_NAME changes.
-APP_DATA_DIR_NAME = "Describer"
+# New installs use this folder. Legacy folders are copied in on first run.
+APP_DATA_DIR_NAME = APP_NAME
+LEGACY_DATA_DIR_NAMES = ("Describer", "describer", "Omni Describer", "Omni Descritor")
 
 def portable_marker_name():
     return "portable.txt"
@@ -82,7 +83,7 @@ def portable_marker_name():
 # This fork. A build must not download the upstream audioses packages.
 GITHUB_REPO = "lcm25/omni-describer"
 VERSION_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/omni_describer.zip"
+DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/{APP_NAME}-portable.zip"
 UPDATER_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/updater.exe"
 WEBSITE_URL = "https://audioses.com/"
 WEBAPP_URL = "https://studio.binclusive.io"

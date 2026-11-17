@@ -565,7 +565,7 @@ class AboutDialog(wx.Dialog):
 
         desc_text = wx.StaticText(panel, label=_("An application to automatically generate audio descriptions for videos using Gemini AI.\n\nDeveloped with accessibility in mind."))
         panel_sizer.Add(desc_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        credit_text = wx.StaticText(panel, label=_("Based on Omni Describer by Draqoken (audioses). MIT license."))
+        credit_text = wx.StaticText(panel, label=_("Based on Omni Describer, created by Draqoken (audioses), MIT license."))
         panel_sizer.Add(credit_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
         
         contact_website_sizer = wx.BoxSizer(wx.HORIZONTAL)

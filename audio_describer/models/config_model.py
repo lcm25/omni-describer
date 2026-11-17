@@ -14,6 +14,35 @@ from audio_describer import config
 _OBFUSCATION_KEY = b"OmniDescriberSettingsKey2026!@#xK9"
 
 # --- File Paths ---
+def _settings_present(folder):
+    if not folder or not os.path.isdir(folder):
+        return False
+    names = ("settings.dat2", "settings.dat", "settings.dat.json", "prompts.json", "voices.json")
+    return any(os.path.isfile(os.path.join(folder, name)) for name in names)
+
+
+def migrate_legacy_settings(new_dir, legacy_dirs):
+    """Copy an older settings folder into new_dir when the new folder is empty.
+
+    The old folder is left in place, so a failed copy cannot delete the user's data.
+    """
+    if _settings_present(new_dir):
+        return False
+    new_real = os.path.abspath(new_dir)
+    for old in legacy_dirs:
+        if not old or os.path.abspath(old) == new_real or not _settings_present(old):
+            continue
+        os.makedirs(new_dir, exist_ok=True)
+        for name in os.listdir(old):
+            src = os.path.join(old, name)
+            dst = os.path.join(new_dir, name)
+            if os.path.isfile(src) and not os.path.exists(dst):
+                import shutil
+                shutil.copy2(src, dst)
+        return True
+    return False
+
+
 def _portable_data_dir():
     """When portable.txt sits next to the frozen exe, keep settings beside it."""
     if not getattr(sys, "frozen", False):
@@ -33,7 +62,13 @@ elif os.name == 'nt':
     APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, config.APP_DATA_DIR_NAME)
 else:
     APP_DATA_BASE_DIR = os.path.expanduser("~")
-    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_DATA_DIR_NAME.lower().replace(" ", "_"))
+    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_DATA_DIR_NAME)
+
+if not _portable:
+    migrate_legacy_settings(
+        APP_DATA_DIR,
+        [os.path.join(APP_DATA_BASE_DIR, name) for name in config.LEGACY_DATA_DIR_NAMES],
+    )
 
 try:
     if not os.path.exists(APP_DATA_DIR):

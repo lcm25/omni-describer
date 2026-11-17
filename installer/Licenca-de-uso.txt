@@ -2,7 +2,7 @@ __APP_NAME__ — LICENÇA E TERMOS DE USO
 Leia antes de instalar ou usar.
 
 Este programa é uma adaptação gratuita feita por Leandro Maruci.
-Ele é baseado no Omni Describer, criado originalmente por Draqoken (audioses)
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
 e publicado sob a licença MIT. A licença MIT original está reproduzida abaixo
 e continua valendo para o código. Nada nestes termos reduz os direitos que a
 licença MIT garante.

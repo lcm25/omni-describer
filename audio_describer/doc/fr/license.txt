@@ -1,6 +1,8 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Licence et Conditions d'Utilisation
 
-Merci d'utiliser Omni Describer ! En utilisant ce logiciel, vous acceptez les conditions simples suivantes :
+Merci d'utiliser Descritudo ! En utilisant ce logiciel, vous acceptez les conditions simples suivantes :
 
 1. Utilisation Responsable
 Cet outil est conçu pour aider à créer des audiodescriptions pour les vidéos et autres contenus. Veuillez l'utiliser de manière éthique et respecter les droits d'auteur ainsi que les droits des autres.

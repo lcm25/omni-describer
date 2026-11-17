@@ -1,21 +1,24 @@
 ; Instalador e cópia portátil. Compilar com:
-;   makensis -DAPPNAME=omni_describer -DAPPDISPLAY="Omni Describer" -DAPPVERSION=2.1.0 -DAPPEXE=omni_describer.exe -DSRCDIR=installer\arquivos Setup.nsi
+;   makensis -DAPPNAME=Descritudo -DAPPDISPLAY=Descritudo -DAPPVERSION=2.1.0 -DAPPEXE=Descritudo.exe -DOUTFILE=Descritudo-Setup.exe -DSRCDIR=installer\arquivos Setup.nsi
 Unicode true
 SetCompressor /SOLID lzma
 ManifestDPIAware true
 RequestExecutionLevel user
 
 !ifndef APPNAME
-  !define APPNAME "omni_describer"
+  !define APPNAME "Descritudo"
 !endif
 !ifndef APPDISPLAY
-  !define APPDISPLAY "Omni Describer"
+  !define APPDISPLAY "Descritudo"
 !endif
 !ifndef APPVERSION
   !define APPVERSION "2.1.0"
 !endif
 !ifndef APPEXE
-  !define APPEXE "omni_describer.exe"
+  !define APPEXE "Descritudo.exe"
+!endif
+!ifndef OUTFILE
+  !define OUTFILE "Descritudo-Setup.exe"
 !endif
 !ifndef SRCDIR
   !define SRCDIR "installer\arquivos"
@@ -23,7 +26,7 @@ RequestExecutionLevel user
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
 Name "${APPDISPLAY} ${APPVERSION}"
-OutFile "${APPNAME}-${APPVERSION}-Setup.exe"
+OutFile "${OUTFILE}"
 BrandingText "${APPDISPLAY} ${APPVERSION}"
 InstallDir "$LOCALAPPDATA\Programs\${APPNAME}"
 ShowInstDetails show
@@ -61,7 +64,7 @@ Var BtnPix
 !define MUI_UNABORTWARNING
 
 !define MUI_WELCOMEPAGE_TITLE "Bem-vindo ao assistente do ${APPDISPLAY} ${APPVERSION}"
-!define MUI_WELCOMEPAGE_TEXT "Este assistente instala o ${APPDISPLAY} no computador ou cria uma cópia portátil em uma pasta ou pen drive.$\r$\n$\r$\nO ${APPDISPLAY} foi adaptado e melhorado por Leandro Maruci. É baseado no Omni Describer, criado originalmente por Draqoken (audioses) e publicado sob a licença MIT.$\r$\n$\r$\nUse Tab para percorrer os controles, as setas para mudar a opção e Enter para avançar."
+!define MUI_WELCOMEPAGE_TEXT "Este assistente instala o ${APPDISPLAY} no computador ou cria uma cópia portátil em uma pasta ou pen drive.$\r$\n$\r$\nO ${APPDISPLAY} foi adaptado e melhorado por Leandro Maruci. Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.$\r$\n$\r$\nUse Tab para percorrer os controles, as setas para mudar a opção e Enter para avançar."
 !insertmacro MUI_PAGE_WELCOME
 
 !define MUI_LICENSEPAGE_TEXT_TOP "Leia a licença. Use as setas ou Page Down para percorrer o texto. A licença MIT original está no final."
@@ -155,7 +158,7 @@ Function PaginaApoio
   ${EndIf}
   StrCpy $NaPaginaApoio "1"
 
-  ${NSD_CreateLabel} 0 0 100% 78u "O ${APPDISPLAY} foi adaptado e melhorado por Leandro Maruci. É baseado no Omni Describer, criado originalmente por Draqoken (audioses) e publicado sob a licença MIT. O programa é gratuito. Sua ajuda, de qualquer valor, mantém as atualizações. Copie a chave Pix pelo botão abaixo."
+  ${NSD_CreateLabel} 0 0 100% 78u "O ${APPDISPLAY} foi adaptado e melhorado por Leandro Maruci. Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT. O programa é gratuito. Sua ajuda, de qualquer valor, mantém as atualizações. Copie a chave Pix pelo botão abaixo."
   Pop $0
 
   ${NSD_CreateButton} 0 86u 50% 16u "&Copiar chave Pix"

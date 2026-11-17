@@ -1,6 +1,8 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Giấy phép và Điều khoản Sử dụng 
  
-Cảm ơn bạn đã sử dụng Omni Describer!
+Cảm ơn bạn đã sử dụng Descritudo!
 Bằng việc sử dụng phần mềm này, bạn đồng ý với các điều khoản đơn giản sau: 
  
 1. Sử dụng có Trách nhiệm

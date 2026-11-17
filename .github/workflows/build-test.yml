@@ -66,11 +66,10 @@ jobs:
           pyinstaller build.spec
           pyinstaller --onefile sapi32.py
           pyinstaller --onefile updater.py
-          $slug = python -c "from audio_describer.config import app_file_slug; print(app_file_slug())"
+          $slug = python -c "from audio_describer.config import APP_EXE_BASENAME; print(APP_EXE_BASENAME)"
           $dist = "dist/${slug}_dist"
           Copy-Item dist/sapi32.exe, dist/updater.exe $dist -Force
           if (-not (Test-Path "$dist/$slug.exe")) { throw "Missing $dist/$slug.exe" }
-          "slug=$slug" | Out-File -FilePath slug.txt -Encoding ascii
           echo "SLUG=$slug" >> $env:GITHUB_ENV
 
       - name: Smoke test
@@ -108,16 +107,17 @@ jobs:
           [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license, $utf16)
           $nsi = "C:\Program Files (x86)\NSIS\makensis.exe"
           if (-not (Test-Path $nsi)) { $nsi = "makensis" }
-          & $nsi "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DSRCDIR=installer\arquivos" "installer\Setup.nsi"
-          $setup = "$slug-$ver-Setup.exe"
+          $setup = "$name-Setup.exe"
+          & $nsi "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DOUTFILE=$setup" "-DSRCDIR=installer\arquivos" "installer\Setup.nsi"
           if (-not (Test-Path $setup)) { throw "Installer was not produced" }
           $portable = "portable-staging"
           if (Test-Path $portable) { Remove-Item $portable -Recurse -Force }
           Copy-Item $src $portable -Recurse
           Set-Content -Path "$portable/portable.txt" -Value "portable" -Encoding ascii
-          Compress-Archive -Path "$portable/*" -DestinationPath "$slug-portable.zip"
+          $portableZip = "$name-portable.zip"
+          Compress-Archive -Path "$portable/*" -DestinationPath $portableZip
           echo "SETUP=$setup" >> $env:GITHUB_ENV
-          echo "PORTABLE=$slug-portable.zip" >> $env:GITHUB_ENV
+          echo "PORTABLE=$portableZip" >> $env:GITHUB_ENV
 
       - name: Upload installer
         uses: actions/upload-artifact@v4

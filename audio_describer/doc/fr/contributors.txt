@@ -1,3 +1,5 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Contributeurs
 
 Ce projet n'aurait pas vu le jour sans le travail incroyable des développeurs qui ont créé ses outils fondamentaux et le soutien de personnes formidables.
@@ -12,9 +14,9 @@ Traducteurs :
 Russe : Fatih Yüksek. Espagnol : Annabel vazkez. Ukrainien : Oleh Khokhlov.
 
 Technologie :
-Et aux développeurs des outils incroyables qui propulsent Omni Describer, notamment Google Gemini, FFmpeg, et les nombreuses bibliothèques Python qui en constituent la base.
+Et aux développeurs des outils incroyables qui propulsent Descritudo, notamment Google Gemini, FFmpeg, et les nombreuses bibliothèques Python qui en constituent la base.
 
 Et vous :
 Pour votre utilisation de l'application et pour vos retours.
 
-Merci d'utiliser Omni Describer.
+Merci d'utiliser Descritudo.

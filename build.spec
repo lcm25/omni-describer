@@ -8,9 +8,9 @@ import sys
 from PyInstaller.utils.hooks import collect_submodules, collect_all, copy_metadata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(SPEC)))
-from audio_describer.config import app_file_slug
+from audio_describer.config import APP_EXE_BASENAME
 
-APP_SLUG = app_file_slug()
+APP_SLUG = APP_EXE_BASENAME
 
 # google.genai (the new SDK) is a namespace package with data files and lazily
 # imported submodules; collect_all grabs modules + data + binaries so the frozen

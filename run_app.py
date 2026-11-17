@@ -40,6 +40,7 @@ def main():
         # Any error from here on will be caught and logged by the configured app_logger.
         
         # We pre-import the logger here to make it available in the final catch block.
+        from audio_describer import config as app_config
         from audio_describer.utils.logger import app_logger, get_log_file_path
 
         try:
@@ -56,7 +57,7 @@ def main():
             # If we reach here, the logger is guaranteed to be initialized.
             crash_report = (
                 f"\n\n--- UNHANDLED EXCEPTION ---\n"
-                f"Omni Describer encountered a fatal error and could not continue.\n"
+                f"{app_config.APP_NAME} encountered a fatal error and could not continue.\n"
                 f"Please send the complete contents of this log file to the support team.\n"
                 f"Log file path: {get_log_file_path()}\n"
                 f"--- START OF CRASH REPORT ---\n"
@@ -67,7 +68,7 @@ def main():
             # Show a user-friendly message pointing them to the log.
             _show_early_error_popup(
                 "Application Startup Error",
-                "Omni Describer encountered a critical error during startup and had to close.\n\n"
+                f"{app_config.APP_NAME} encountered a critical error during startup and had to close.\n\n"
                 "A detailed error report has been saved to the application's log file.\n\n"
                 f"Please find the log file at:\n{get_log_file_path()}\n\n"
                 "And send it to the support team for assistance."
@@ -88,7 +89,7 @@ def main():
 
         _show_early_error_popup(
             "Fatal Early Startup Error",
-            f"Omni Describer failed very early during startup.\n\n"
+            "Descritudo failed very early during startup.\n\n"
             f"A crash report has been saved next to the application executable:\n{crash_file_path}\n\n"
             "Please send this file to the support team."
         )
