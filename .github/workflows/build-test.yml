@@ -1,0 +1,127 @@
+name: Build test
+
+# Builds a Windows folder, a portable zip and an NSIS installer.
+# Does not publish a GitHub Release.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build (branch, tag or SHA)
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r audio_describer/requirements.txt
+          pip install "pyinstaller<6"
+
+      - name: Fetch runtime binaries into bin dir
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force audio_describer/bin | Out-Null
+          Invoke-WebRequest https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe -OutFile audio_describer/bin/yt-dlp.exe
+          Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp -Force
+          Copy-Item (Get-ChildItem ffmpeg_tmp -Recurse -Filter ffmpeg.exe)[0].FullName  audio_describer/bin/ffmpeg.exe
+          Copy-Item (Get-ChildItem ffmpeg_tmp -Recurse -Filter ffprobe.exe)[0].FullName audio_describer/bin/ffprobe.exe
+          Invoke-WebRequest https://ftp.osuosl.org/pub/videolan/vlc/3.0.21/win64/vlc-3.0.21-win64.zip -OutFile vlc.zip
+          if ((Get-Item vlc.zip).Length -lt 1MB) { throw "vlc.zip download failed" }
+          Expand-Archive vlc.zip -DestinationPath vlc_tmp -Force
+          $vlcSrc = (Get-ChildItem vlc_tmp -Directory)[0].FullName
+          New-Item -ItemType Directory -Force audio_describer/bin/vlc | Out-Null
+          Copy-Item "$vlcSrc/libvlc.dll","$vlcSrc/libvlccore.dll" audio_describer/bin/vlc/
+          Copy-Item "$vlcSrc/plugins" audio_describer/bin/vlc/ -Recurse -Force
+          foreach ($f in @(
+            'audio_describer/bin/yt-dlp.exe',
+            'audio_describer/bin/ffmpeg.exe',
+            'audio_describer/bin/ffprobe.exe',
+            'audio_describer/bin/vlc/libvlc.dll',
+            'audio_describer/bin/vlc/plugins'
+          )) {
+            if (-not (Test-Path $f)) { throw "Missing bundled runtime: $f" }
+          }
+
+      - name: Build app and helpers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pyinstaller build.spec
+          pyinstaller --onefile sapi32.py
+          pyinstaller --onefile updater.py
+          $slug = python -c "from audio_describer.config import app_file_slug; print(app_file_slug())"
+          $dist = "dist/${slug}_dist"
+          Copy-Item dist/sapi32.exe, dist/updater.exe $dist -Force
+          if (-not (Test-Path "$dist/$slug.exe")) { throw "Missing $dist/$slug.exe" }
+          "slug=$slug" | Out-File -FilePath slug.txt -Encoding ascii
+          echo "SLUG=$slug" >> $env:GITHUB_ENV
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $slug = $env:SLUG
+          $exe = "dist/${slug}_dist/$slug.exe"
+          $p = Start-Process -FilePath $exe -ArgumentList "--self-check" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "self-check exit code $($p.ExitCode)" }
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis -y --no-progress
+
+      - name: Build installer and portable zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $slug = $env:SLUG
+          $name = python -c "from audio_describer.config import APP_NAME; print(APP_NAME)"
+          $ver = python -c "from audio_describer.config import APP_VERSION; print(APP_VERSION)"
+          $src = "installer/arquivos"
+          if (Test-Path $src) { Remove-Item $src -Recurse -Force }
+          New-Item -ItemType Directory -Force $src | Out-Null
+          Copy-Item "dist/${slug}_dist/*" $src -Recurse -Force
+          $license = Get-Content installer/Licenca-de-uso.txt -Raw -Encoding UTF8
+          $license = $license.Replace("__APP_NAME__", $name)
+          [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license)
+          $nsi = "C:\Program Files (x86)\NSIS\makensis.exe"
+          if (-not (Test-Path $nsi)) { $nsi = "makensis" }
+          & $nsi "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DSRCDIR=installer\arquivos" "installer\Setup.nsi"
+          $setup = "$slug-$ver-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "Installer was not produced" }
+          $portable = "portable-staging"
+          if (Test-Path $portable) { Remove-Item $portable -Recurse -Force }
+          Copy-Item $src $portable -Recurse
+          Set-Content -Path "$portable/portable.txt" -Value "portable" -Encoding ascii
+          Compress-Archive -Path "$portable/*" -DestinationPath "$slug-portable.zip"
+          echo "SETUP=$setup" >> $env:GITHUB_ENV
+          echo "PORTABLE=$slug-portable.zip" >> $env:GITHUB_ENV
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: ${{ env.SETUP }}
+          if-no-files-found: error
+
+      - name: Upload portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-zip
+          path: ${{ env.PORTABLE }}
+          if-no-files-found: error
