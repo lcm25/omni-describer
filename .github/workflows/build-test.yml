@@ -68,7 +68,10 @@ jobs:
           pyinstaller --onefile updater.py
           $slug = python -c "from audio_describer.config import APP_EXE_BASENAME; print(APP_EXE_BASENAME)"
           $dist = "dist/${slug}_dist"
-          Copy-Item dist/sapi32.exe, dist/updater.exe $dist -Force
+          New-Item -ItemType Directory -Force "$dist/bin" | Out-Null
+          Copy-Item dist/sapi32.exe "$dist/bin/sapi32.exe" -Force
+          Copy-Item dist/updater.exe $dist -Force
+          if (-not (Test-Path "$dist/bin/sapi32.exe")) { throw "sapi32.exe was not placed in bin" }
           if (-not (Test-Path "$dist/$slug.exe")) { throw "Missing $dist/$slug.exe" }
           echo "SLUG=$slug" >> $env:GITHUB_ENV
 
@@ -85,6 +88,18 @@ jobs:
           if (-not (Test-Path $marker)) { throw "self-check did not write a marker (exit $($p.ExitCode))" }
           $text = Get-Content $marker -Raw
           if ($text -notmatch "self-check-ok") { throw "unexpected self-check output: $text" }
+          $smoke = Join-Path (Get-Location) "smoke-window.txt"
+          if (Test-Path $smoke) { Remove-Item $smoke }
+          $env:OMNI_SMOKE_FILE = $smoke
+          $window = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -WorkingDirectory (Split-Path $exe) -PassThru
+          if (-not $window.WaitForExit(20000)) {
+            Stop-Process -Id $window.Id -Force -ErrorAction SilentlyContinue
+            throw "main window smoke test did not exit within 20s"
+          }
+          if ($window.ExitCode -ne 0) { throw "main window smoke test exited $($window.ExitCode)" }
+          if (-not (Test-Path $smoke)) { throw "main window smoke test wrote no marker" }
+          $shown = Get-Content $smoke -Raw
+          if ($shown -notmatch "main window shown") { throw "main window was not created: $shown" }
 
       - name: Install NSIS
         shell: pwsh
