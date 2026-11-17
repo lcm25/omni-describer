@@ -88,7 +88,48 @@ jobs:
 
       - name: Install NSIS
         shell: pwsh
-        run: choco install nsis -y --no-progress
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $dest = "C:\Program Files (x86)\NSIS\makensis.exe"
+          function Find-Makensis {
+            if (Test-Path $dest) { return $dest }
+            $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+            return $null
+          }
+          $found = Find-Makensis
+          foreach ($attempt in 1..3) {
+            if ($found) { break }
+            Write-Host "choco nsis attempt $attempt"
+            choco install nsis -y --no-progress
+            Start-Sleep -Seconds (5 * $attempt)
+            $found = Find-Makensis
+          }
+          if (-not $found) {
+            Write-Host "Chocolatey did not install NSIS. Downloading the official zip."
+            $root = Join-Path $env:RUNNER_TEMP "nsis-portable"
+            New-Item -ItemType Directory -Force $root | Out-Null
+            $zip = Join-Path $root "nsis.zip"
+            $urls = @(
+              "https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11.zip/download",
+              "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip"
+            )
+            $ok = $false
+            foreach ($url in $urls) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+                if ((Get-Item $zip).Length -gt 1MB) { $ok = $true; break }
+              } catch {
+                Write-Host $_
+              }
+            }
+            if (-not $ok) { throw "NSIS download failed" }
+            Expand-Archive $zip -DestinationPath $root -Force
+            $exe = Get-ChildItem $root -Recurse -Filter makensis.exe | Select-Object -First 1
+            if (-not $exe) { throw "makensis.exe was not in the NSIS zip" }
+            $found = $exe.FullName
+          }
+          echo "MAKENSIS=$found" >> $env:GITHUB_ENV
 
       - name: Build installer and portable zip
         shell: pwsh
@@ -105,7 +146,8 @@ jobs:
           $license = $license.Replace("__APP_NAME__", $name)
           $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
           [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license, $utf16)
-          $nsi = "C:\Program Files (x86)\NSIS\makensis.exe"
+          $nsi = $env:MAKENSIS
+          if (-not $nsi -or -not (Test-Path $nsi)) { $nsi = "C:\Program Files (x86)\NSIS\makensis.exe" }
           if (-not (Test-Path $nsi)) { $nsi = "makensis" }
           $setup = "$name-Setup.exe"
           # makensis resolves File and LicenseData from the .nsi directory, so a
