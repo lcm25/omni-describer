@@ -224,46 +224,64 @@ def list_piper_voices():
     return voices
 
 
+def _voices_in_payload(data):
+    raw_list = []
+    if isinstance(data, list):
+        raw_list = data
+    elif isinstance(data, dict):
+        for key in ("voices", "data", "items", "system_voice", "voice_list"):
+            if isinstance(data.get(key), list):
+                raw_list.extend(data[key])
+        for value in data.values():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                raw_list.extend(value)
+    voices = []
+    seen = set()
+    for item in raw_list:
+        if not isinstance(item, dict):
+            continue
+        voice_id = item.get("voice_id") or item.get("id") or item.get("voiceId") or item.get("ShortName") or item.get("_id") or ""
+        name = (
+            item.get("display_name") or item.get("displayName") or item.get("name")
+            or item.get("LocalName") or item.get("title") or voice_id
+        )
+        voice_id = str(voice_id)
+        if not voice_id or voice_id.lower() in seen:
+            continue
+        seen.add(voice_id.lower())
+        voices.append({"id": voice_id, "name": str(name)})
+    return voices
+
+
 def fetch_remote_voices(provider_id, api_key, model="", azure_region=""):
-    """Refresh account voices. Returns [{id, name}, ...]. Network required."""
+    """Refresh the full voice catalog. Follows pagination. Network required where a list API exists."""
     from . import narration_requests as requests
+    builtin = requests.builtin_voices(provider_id, model)
+    if provider_id in ("openai", "deepgram", "mvsep", "windows", "piper"):
+        return builtin
     if provider_id == "azure":
         url = requests.azure_base(azure_region) + "/voices/list"
         headers = requests.auth_headers("azure", api_key)
         payload, _mime = _http_json("GET", url, headers, None, timeout=20)
         items = json.loads(payload.decode("utf-8", errors="replace"))
-        voices = []
-        for item in items if isinstance(items, list) else []:
-            voice_id = item.get("ShortName") or ""
-            name = item.get("LocalName") or item.get("DisplayName") or voice_id
-            if voice_id:
-                voices.append({"id": voice_id, "name": name})
-        voices.sort(key=lambda item: (not item["name"].lower().startswith("pt"), item["name"]))
-        return voices
-    if provider_id == "deepgram":
-        return requests.builtin_voices("deepgram", model)
-    method, url, headers, body = requests.voice_list_request(provider_id, api_key, model)
-    payload, _mime = _http_json(method, url, headers, body, timeout=20)
-    data = json.loads(payload.decode("utf-8", errors="replace"))
+        return requests.merge_voices(builtin, _voices_in_payload(items if isinstance(items, list) else {"voices": items}))
+    listed = requests.voice_list_request(provider_id, api_key, model)
+    if not listed:
+        return builtin
+    method, url, headers, body = listed
     voices = []
-    raw_list = []
-    if isinstance(data, list):
-        raw_list = data
-    elif isinstance(data, dict):
-        for key in ("voices", "data", "items"):
-            if isinstance(data.get(key), list):
-                raw_list = data[key]
-                break
-        if not raw_list and isinstance(data.get("system_voice"), list):
-            raw_list = data["system_voice"]
-    for item in raw_list:
-        if not isinstance(item, dict):
-            continue
-        voice_id = item.get("voice_id") or item.get("id") or item.get("voiceId") or item.get("_id") or ""
-        name = item.get("display_name") or item.get("displayName") or item.get("name") or item.get("title") or voice_id
-        if voice_id:
-            voices.append({"id": str(voice_id), "name": str(name)})
-    return voices
+    seen_urls = set()
+    for _page in range(100):
+        if not url or url in seen_urls:
+            break
+        seen_urls.add(url)
+        payload, _mime = _http_json(method, url, headers, body, timeout=20)
+        data = json.loads(payload.decode("utf-8", errors="replace") or "{}")
+        voices.extend(_voices_in_payload(data))
+        url = requests.next_voice_page(url, data)
+        body = None
+        method = "GET"
+    return requests.merge_voices(builtin, voices)
 
 
 def windows_engine_for_model(model):
