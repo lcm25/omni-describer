@@ -223,9 +223,14 @@ class SettingsDialog(wx.Dialog):
         test_sizer.Add(self.test_voice_button, 0, wx.ALIGN_CENTER|wx.ALL, 5)
         audio_sizer.Add(test_sizer, 0, wx.EXPAND|wx.ALL, 5)
         
-        audio_sizer.Add(wx.StaticText(self.audio_output_panel, label=_("Original Audio Ducking (-dB, for MP3):")), 0, wx.ALL, 5)
+        self.ducking_checkbox = wx.CheckBox(self.audio_output_panel, label=_("&Duck original audio under the narration"))
+        audio_sizer.Add(self.ducking_checkbox, 0, wx.ALL, 5)
+        self.ducking_label = wx.StaticText(self.audio_output_panel, label=_("Ducking level (-dB):"))
+        audio_sizer.Add(self.ducking_label, 0, wx.ALL, 5)
         self.ducking_spin = wx.SpinCtrl(self.audio_output_panel, value="-15", min=-60, max=0)
         audio_sizer.Add(self.ducking_spin, 0, wx.EXPAND|wx.ALL, 5)
+        self.keep_original_checkbox = wx.CheckBox(self.audio_output_panel, label=_("&Keep the original audio as a second track"))
+        audio_sizer.Add(self.keep_original_checkbox, 0, wx.ALL, 5)
         self.audio_output_panel.SetSizer(audio_sizer)
         self.notebook.AddPage(self.audio_output_panel, _("Audio Output"))
 
@@ -279,6 +284,8 @@ class SettingsDialog(wx.Dialog):
         self.sapi_voice_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.sapi_rate_slider.Bind(wx.EVT_SLIDER, self.OnSettingChanged)
         self.ducking_spin.Bind(wx.EVT_SPINCTRL, self.OnSettingChanged)
+        self.ducking_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.keep_original_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
 
     def OnTestVoice(self, event):
         text = self.test_text_ctrl.GetValue()
@@ -433,7 +440,10 @@ class SettingsDialog(wx.Dialog):
             self.sapi_rate_slider.SetValue(self.current_settings.get("onecore_voice_rate_percent", 100))
         else:
             self.sapi_rate_slider.SetValue(self.current_settings.get("sapi5_voice_rate_percent", 100))
+        self.ducking_checkbox.SetValue(bool(self.current_settings.get("audio_ducking_enabled", True)))
         self.ducking_spin.SetValue(self.current_settings.get("mp3_audio_ducking_level_db", -15))
+        self.keep_original_checkbox.SetValue(bool(self.current_settings.get("export_keep_original_audio", False)))
+        self._sync_ducking_level_visibility()
         
         self.settings_changed = False
         self.apply_button.Disable()
@@ -708,7 +718,9 @@ class SettingsDialog(wx.Dialog):
             self.current_settings["onecore_voice_id"] = None
             self.current_settings["onecore_voice_rate_percent"] = 100
 
+        self.current_settings["audio_ducking_enabled"] = self.ducking_checkbox.IsChecked()
         self.current_settings["mp3_audio_ducking_level_db"] = self.ducking_spin.GetValue()
+        self.current_settings["export_keep_original_audio"] = self.keep_original_checkbox.IsChecked()
         
         config_model.app_settings.update(self.current_settings)
         if config_model.save_settings(config_model.app_settings):
@@ -721,11 +733,18 @@ class SettingsDialog(wx.Dialog):
             wx.MessageBox(_("Could not save settings."), _("Error"), wx.OK | wx.ICON_ERROR, self)
             return False
 
+    def _sync_ducking_level_visibility(self):
+        show = self.ducking_checkbox.IsChecked()
+        self.ducking_label.Show(show)
+        self.ducking_spin.Show(show)
+        self.audio_output_panel.Layout()
+
     def OnSettingChanged(self, event):
         is_chunking = self.enable_chunking_checkbox.IsChecked()
         self.chunk_duration_label.Enable(is_chunking)
         self.chunk_duration_spin.Enable(is_chunking)
         self.ai_panel.Layout()
+        self._sync_ducking_level_visibility()
         
         self.settings_changed = True
         self.apply_button.Enable()

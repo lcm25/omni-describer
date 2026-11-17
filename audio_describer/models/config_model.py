@@ -126,6 +126,8 @@ DEFAULT_SETTINGS = {
     "onecore_voice_id": None,
     "onecore_voice_rate_percent": 100,
     "mp3_audio_ducking_level_db": -15,
+    "audio_ducking_enabled": True,
+    "export_keep_original_audio": False,
     "player_volume_percent": 50,
     "webapp_banner_shown": False,
 }

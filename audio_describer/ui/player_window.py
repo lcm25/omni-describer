@@ -102,6 +102,7 @@ from ..models import config_model
 ID_PLAY_PAUSE = wx.NewIdRef()
 ID_EDIT_DESCRIPTIONS = wx.NewIdRef()
 ID_EXPORT = wx.NewIdRef() # Consolidated export button ID
+ID_EXPORT_VIDEO = wx.NewIdRef()
 ID_MEDIA_TIMER = wx.NewIdRef()
 ID_SEEK_BACK = wx.NewIdRef()
 ID_SEEK_FWD = wx.NewIdRef()
@@ -165,6 +166,8 @@ class PlayerWindow(wx.Dialog):
         slider_play_sizer.Add(self.play_pause_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.export_button = wx.Button(self.panel, ID_EXPORT, _("&Export"))
         slider_play_sizer.Add(self.export_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        self.export_video_button = wx.Button(self.panel, ID_EXPORT_VIDEO, _("Export &video with audio description"))
+        slider_play_sizer.Add(self.export_video_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         
         self.seek_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=1000, style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
         set_control_accessible_name(self.seek_slider, _("Video progress slider"))
@@ -263,6 +266,7 @@ class PlayerWindow(wx.Dialog):
         
         self.Bind(wx.EVT_BUTTON, self.OnSettings, id=ID_SETTINGS)
         self.Bind(wx.EVT_BUTTON, self.OnExport, id=ID_EXPORT)
+        self.Bind(wx.EVT_BUTTON, self.OnExportVideo, id=ID_EXPORT_VIDEO)
         
         self.seek_slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.OnSeekSliderThumbTrack)
         self.seek_slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.OnSeekSliderThumbRelease)
@@ -473,6 +477,9 @@ class PlayerWindow(wx.Dialog):
     def OnExport(self, event):
         from . import player_export # Local import to prevent cycles
         player_export.start_mp3_export(self)
+
+    def OnExportVideo(self, event):
+        player_export.start_video_with_ad_export(self)
 
     def OnExportDone(self, event):
         if self.progress_dialog:

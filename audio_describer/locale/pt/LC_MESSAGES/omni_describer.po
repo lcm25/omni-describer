@@ -2530,3 +2530,24 @@ msgstr "Vídeo"
 #: a11y
 msgid "Volume"
 msgstr "Volume"
+
+msgid "Export &video with audio description"
+msgstr "Exportar &vídeo com audiodescrição"
+
+msgid "MP4 video (*.mp4)|*.mp4"
+msgstr "Vídeo MP4 (*.mp4)|*.mp4"
+
+msgid "Save video with audio description"
+msgstr "Guardar vídeo com audiodescrição"
+
+msgid "FFmpeg failed to write the video. Check FFmpeg and the video file."
+msgstr "O FFmpeg não conseguiu gravar o vídeo. Verifique o FFmpeg e o ficheiro de vídeo."
+
+msgid "&Duck original audio under the narration"
+msgstr "Re&duzir o áudio original durante a narração"
+
+msgid "Ducking level (-dB):"
+msgstr "Nível da redução (-dB):"
+
+msgid "&Keep the original audio as a second track"
+msgstr "&Manter o áudio original como segunda faixa"
