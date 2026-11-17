@@ -2700,3 +2700,9 @@ msgstr "Não deu para atualizar a lista."
 
 msgid "Key erased."
 msgstr "Chave apagada."
+
+msgid "Gemma 3 4B, about 3.3 GB, 8 GB of RAM"
+msgstr "Gemma 3 4B, cerca de 3,3 GB, 8 GB de RAM"
+
+msgid "Gemma 3 12B, about 8.2 GB, 16 GB of RAM"
+msgstr "Gemma 3 12B, cerca de 8,2 GB, 16 GB de RAM"

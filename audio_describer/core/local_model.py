@@ -55,6 +55,46 @@ LOCAL_MODELS = (
             },
         ),
     },
+    {
+        "id": "gemma3-4b",
+        "label": "Gemma 3 4B, about 3.3 GB, 8 GB of RAM",
+        "files": (
+            {
+                "name": "gemma-3-4b-it-Q4_K_M.gguf",
+                "role": "model",
+                "url": "https://huggingface.co/ggml-org/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf",
+                "sha256": "708878072fd6ad447564132426948a5d97e8cdb7105b081f68330d7e51ab3a93",
+                "size": 2489757856,
+            },
+            {
+                "name": "mmproj-model-f16.gguf",
+                "role": "mmproj",
+                "url": "https://huggingface.co/ggml-org/gemma-3-4b-it-GGUF/resolve/main/mmproj-model-f16.gguf",
+                "sha256": "4f9a08744613d05f86991776e31a3385d8f0c4c8b33fb105f22edb5e24863c1e",
+                "size": 851251104,
+            },
+        ),
+    },
+    {
+        "id": "gemma3-12b",
+        "label": "Gemma 3 12B, about 8.2 GB, 16 GB of RAM",
+        "files": (
+            {
+                "name": "gemma-3-12b-it-Q4_K_M.gguf",
+                "role": "model",
+                "url": "https://huggingface.co/ggml-org/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-Q4_K_M.gguf",
+                "sha256": "03b0673c78ad7f2208af553b3a6b82ccb14a709ea98c0f470df3de914225eaf3",
+                "size": 7300574976,
+            },
+            {
+                "name": "mmproj-model-f16.gguf",
+                "role": "mmproj",
+                "url": "https://huggingface.co/ggml-org/gemma-3-12b-it-GGUF/resolve/main/mmproj-model-f16.gguf",
+                "sha256": "2ab9f9a8e24eca7e838bc6bf5ea7b74adeb119269044acdebfaa49f6be698641",
+                "size": 854200224,
+            },
+        ),
+    },
 )
 
 
@@ -125,8 +165,11 @@ def remove_model(model_id):
         shutil.rmtree(folder, ignore_errors=True)
 
 
-def mtmd_command(exe, model_path, mmproj_path, image_paths, prompt):
+def mtmd_command(exe, model_path, mmproj_path, image_paths, prompt, model_id=""):
+    """llama-mtmd-cli. Gemma 3 needs a context large enough for the image tokens."""
     command = [exe, "-m", model_path, "--mmproj", mmproj_path, "-p", prompt, "-n", "500", "-ngl", "99"]
+    if str(model_id).startswith("gemma3"):
+        command.extend(["-c", "8192"])
     for path in image_paths or []:
         command.extend(["--image", path])
     return command
@@ -185,7 +228,7 @@ def describe_local(frames, prompt):
             handle.close()
             temps.append(handle.name)
             images.append(handle.name)
-        command = mtmd_command(exe, model_path, mmproj_path, images, prompt)
+        command = mtmd_command(exe, model_path, mmproj_path, images, prompt, model_id=model_id)
         result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip()[-400:]

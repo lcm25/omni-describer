@@ -498,6 +498,8 @@ class SettingsDialog(wx.Dialog):
             labels = {
                 "qwen25vl-3b": _("Qwen2.5-VL 3B, about 3 GB, 8 GB of RAM"),
                 "qwen25vl-7b": _("Qwen2.5-VL 7B, about 6 GB, 16 GB of RAM"),
+                "gemma3-4b": _("Gemma 3 4B, about 3.3 GB, 8 GB of RAM"),
+                "gemma3-12b": _("Gemma 3 12B, about 8.2 GB, 16 GB of RAM"),
             }
             builtin = [item["id"] for item in LOCAL_MODELS]
             shown = ids_to_show((config_model.get_setting("cached_analysis_models") or {}).get(provider_id), builtin)

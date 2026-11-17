@@ -33,7 +33,7 @@ FALLBACK_MODELS = {
     "qwen": ("qwen-vl-max", "qwen2.5-vl-72b-instruct"),
     "openrouter": ("google/gemini-2.5-flash", "openai/gpt-4o"),
     "twelvelabs": ("pegasus1.2",),
-    "local": ("qwen25vl-3b", "qwen25vl-7b"),
+    "local": ("qwen25vl-3b", "qwen25vl-7b", "gemma3-4b", "gemma3-12b"),
 }
 
 CUSTOM_MODEL = "__custom__"

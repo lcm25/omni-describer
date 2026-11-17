@@ -64,7 +64,21 @@ def test_timed_lines_and_command():
     command = mtmd_command("llama-mtmd-cli.exe", "m.gguf", "mm.gguf", ["a.jpg"], "olá")
     assert command[0].endswith("llama-mtmd-cli.exe")
     assert "--mmproj" in command and "a.jpg" in command and "-ngl" in command
+    assert "-c" not in command
+    gemma = mtmd_command("llama-mtmd-cli.exe", "gemma.gguf", "mmproj-model-f16.gguf", ["a.jpg"], "olá", model_id="gemma3-4b")
+    assert gemma[gemma.index("-c") + 1] == "8192"
     assert LOCAL_MODELS[0]["id"] == "qwen25vl-3b"
+    from audio_describer.core.local_model import model_by_id, model_file
+    small = model_by_id("gemma3-4b")
+    large = model_by_id("gemma3-12b")
+    small_mm, small_spec = model_file(small, "mmproj")
+    large_mm, large_spec = model_file(large, "mmproj")
+    assert small_mm != large_mm
+    assert small_mm.endswith(os.path.join("gemma3-4b", "mmproj-model-f16.gguf"))
+    assert large_mm.endswith(os.path.join("gemma3-12b", "mmproj-model-f16.gguf"))
+    assert small_spec["size"] == 851251104
+    assert large_spec["size"] == 854200224
+    assert small_spec["sha256"] != large_spec["sha256"]
 
 
 def test_checksum_and_resume(tmp_path):
