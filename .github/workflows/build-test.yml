@@ -76,10 +76,16 @@ jobs:
       - name: Smoke test
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $slug = $env:SLUG
-          $exe = "dist/${slug}_dist/$slug.exe"
-          $p = Start-Process -FilePath $exe -ArgumentList "--self-check" -Wait -PassThru -NoNewWindow
-          if ($p.ExitCode -ne 0) { throw "self-check exit code $($p.ExitCode)" }
+          $exe = Resolve-Path "dist/${slug}_dist/$slug.exe"
+          $marker = Join-Path (Get-Location) "self-check.txt"
+          if (Test-Path $marker) { Remove-Item $marker }
+          $env:OMNI_SELF_CHECK_FILE = $marker
+          $p = Start-Process -FilePath $exe -ArgumentList "--self-check" -WorkingDirectory (Split-Path $exe) -Wait -PassThru
+          if (-not (Test-Path $marker)) { throw "self-check did not write a marker (exit $($p.ExitCode))" }
+          $text = Get-Content $marker -Raw
+          if ($text -notmatch "self-check-ok") { throw "unexpected self-check output: $text" }
 
       - name: Install NSIS
         shell: pwsh
@@ -98,7 +104,8 @@ jobs:
           Copy-Item "dist/${slug}_dist/*" $src -Recurse -Force
           $license = Get-Content installer/Licenca-de-uso.txt -Raw -Encoding UTF8
           $license = $license.Replace("__APP_NAME__", $name)
-          [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license)
+          $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
+          [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license, $utf16)
           $nsi = "C:\Program Files (x86)\NSIS\makensis.exe"
           if (-not (Test-Path $nsi)) { $nsi = "makensis" }
           & $nsi "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DSRCDIR=installer\arquivos" "installer\Setup.nsi"

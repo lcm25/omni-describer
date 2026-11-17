@@ -17,12 +17,6 @@ def main():
     """
     The main entry point for the application, with robust two-stage crash handling.
     """
-    if "--self-check" in sys.argv:
-        from audio_describer import config as app_config
-        print(app_config.APP_NAME)
-        print(app_config.APP_VERSION)
-        print("self-check-ok")
-        return 0
     try:
         # --- Stage 1: Initial Setup (before logger is fully configured) ---
         if getattr(sys, 'frozen', False):
@@ -31,6 +25,16 @@ def main():
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
             sys.path.insert(0, base_path)
+
+        if "--self-check" in sys.argv:
+            from audio_describer import config as app_config
+            marker = os.environ.get("OMNI_SELF_CHECK_FILE")
+            line = f"{app_config.APP_NAME} {app_config.APP_VERSION} self-check-ok\n"
+            print(line, end="")
+            if marker:
+                with open(marker, "w", encoding="utf-8") as handle:
+                    handle.write(line)
+            return 0
         
         # --- Stage 2: Run the main application with full logging ---
         # Any error from here on will be caught and logged by the configured app_logger.
