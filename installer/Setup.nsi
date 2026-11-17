@@ -1,9 +1,8 @@
-; Instalador e cópia portátil.
-; File and LicenseData resolve relative paths from this script's directory
-; (installer\), not from the directory makensis was started in. Pass an
-; absolute -DSRCDIR and -DOUTFILE. Omitting SRCDIR uses arquivos next to this file.
-;   makensis -DAPPNAME=Descritudo -DAPPDISPLAY=Descritudo -DAPPVERSION=2.1.0 -DAPPEXE=Descritudo.exe -DOUTFILE=C:\out\Descritudo-Setup.exe -DSRCDIR=C:\src\installer\arquivos C:\src\installer\Setup.nsi
-Unicode true
+﻿Unicode true
+; Instalador e cópia portátil. Este arquivo é UTF-8 com BOM.
+; Sem o BOM, o makensis lê o script como ACP e troca os acentos.
+; File and LicenseData resolvem caminhos relativos a partir desta pasta.
+; Passe -DSRCDIR e -DOUTFILE absolutos, e /INPUTCHARSET UTF8.
 SetCompressor /SOLID lzma
 ManifestDPIAware true
 RequestExecutionLevel user
@@ -36,6 +35,17 @@ RequestExecutionLevel user
   !error "Licenca-de-uso.txt not found. Pass an absolute -DSRCDIR. Looked in ${SRCDIR} and ${__FILEDIR__}\arquivos."
 !endif
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
+!define SHELLVERB "Descritudo"
+!define SHELLLABEL "Descrever com Descritudo"
+!define SENDTO "Descrever com Descritudo.lnk"
+
+!macro RegisterAssoc EXT
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}" "" "${SHELLLABEL}"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}\command" "" '"$INSTDIR\${APPEXE}" "%1"'
+!macroend
+!macro UnregisterAssoc EXT
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\${SHELLVERB}"
+!macroend
 
 Name "${APPDISPLAY} ${APPVERSION}"
 OutFile "${OUTFILE}"
@@ -359,6 +369,33 @@ Section "Principal" SecPrincipal
     CreateShortcut "$SMPROGRAMS\${APPDISPLAY}\Guia de uso.lnk" "$INSTDIR\doc\pt_BR\help.html"
   ${EndIf}
 
+  ; Menu de contexto e Enviar para, só no modo instalar. A cópia portátil já retornou.
+  !insertmacro RegisterAssoc ".jpg"
+  !insertmacro RegisterAssoc ".jpeg"
+  !insertmacro RegisterAssoc ".png"
+  !insertmacro RegisterAssoc ".webp"
+  !insertmacro RegisterAssoc ".gif"
+  !insertmacro RegisterAssoc ".bmp"
+  !insertmacro RegisterAssoc ".tif"
+  !insertmacro RegisterAssoc ".tiff"
+  !insertmacro RegisterAssoc ".heic"
+  !insertmacro RegisterAssoc ".heif"
+  !insertmacro RegisterAssoc ".mp4"
+  !insertmacro RegisterAssoc ".avi"
+  !insertmacro RegisterAssoc ".mkv"
+  !insertmacro RegisterAssoc ".webm"
+  !insertmacro RegisterAssoc ".mov"
+  !insertmacro RegisterAssoc ".flv"
+  !insertmacro RegisterAssoc ".wmv"
+  !insertmacro RegisterAssoc ".mpeg"
+  !insertmacro RegisterAssoc ".mpg"
+  !insertmacro RegisterAssoc ".3gp"
+  !insertmacro RegisterAssoc ".ogv"
+  !insertmacro RegisterAssoc ".ts"
+  !insertmacro RegisterAssoc ".m4v"
+  !insertmacro RegisterAssoc ".divx"
+  CreateShortcut "$APPDATA\Microsoft\Windows\SendTo\${SENDTO}" "$INSTDIR\${APPEXE}"
+
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayName" "${APPDISPLAY}"
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayVersion" "${APPVERSION}"
   WriteRegStr HKCU "${UNINSTKEY}" "Publisher" "Leandro Maruci"
@@ -393,6 +430,31 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${APPDISPLAY}\Desinstalar ${APPDISPLAY}.lnk"
   Delete "$SMPROGRAMS\${APPDISPLAY}\Guia de uso.lnk"
   RMDir "$SMPROGRAMS\${APPDISPLAY}"
+  Delete "$APPDATA\Microsoft\Windows\SendTo\${SENDTO}"
+  !insertmacro UnregisterAssoc ".jpg"
+  !insertmacro UnregisterAssoc ".jpeg"
+  !insertmacro UnregisterAssoc ".png"
+  !insertmacro UnregisterAssoc ".webp"
+  !insertmacro UnregisterAssoc ".gif"
+  !insertmacro UnregisterAssoc ".bmp"
+  !insertmacro UnregisterAssoc ".tif"
+  !insertmacro UnregisterAssoc ".tiff"
+  !insertmacro UnregisterAssoc ".heic"
+  !insertmacro UnregisterAssoc ".heif"
+  !insertmacro UnregisterAssoc ".mp4"
+  !insertmacro UnregisterAssoc ".avi"
+  !insertmacro UnregisterAssoc ".mkv"
+  !insertmacro UnregisterAssoc ".webm"
+  !insertmacro UnregisterAssoc ".mov"
+  !insertmacro UnregisterAssoc ".flv"
+  !insertmacro UnregisterAssoc ".wmv"
+  !insertmacro UnregisterAssoc ".mpeg"
+  !insertmacro UnregisterAssoc ".mpg"
+  !insertmacro UnregisterAssoc ".3gp"
+  !insertmacro UnregisterAssoc ".ogv"
+  !insertmacro UnregisterAssoc ".ts"
+  !insertmacro UnregisterAssoc ".m4v"
+  !insertmacro UnregisterAssoc ".divx"
   DeleteRegKey HKCU "${UNINSTKEY}"
   Delete "$INSTDIR\Desinstalar.exe"
   RMDir "$INSTDIR"

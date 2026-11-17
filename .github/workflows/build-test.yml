@@ -113,9 +113,17 @@ jobs:
           $srcDir = (Resolve-Path -LiteralPath $src).Path
           $nsiScript = (Resolve-Path -LiteralPath "installer\Setup.nsi").Path
           $outFile = Join-Path (Get-Location).Path $setup
-          & $nsi "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DOUTFILE=$outFile" "-DSRCDIR=$srcDir" $nsiScript
+          $bom = [System.IO.File]::ReadAllBytes($nsiScript)[0..2]
+          if ($bom[0] -ne 239 -or $bom[1] -ne 187 -or $bom[2] -ne 191) { throw "Setup.nsi is missing a UTF-8 BOM" }
+          $log = Join-Path (Get-Location).Path "makensis.log"
+          & $nsi "-INPUTCHARSET" "UTF8" "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DOUTFILE=$outFile" "-DSRCDIR=$srcDir" $nsiScript *> $log
+          Get-Content $log
           if ($LASTEXITCODE -ne 0) { throw "makensis failed with exit code $LASTEXITCODE" }
+          $logged = Get-Content $log -Raw
+          if ($logged -match '\(ACP\)') { throw "makensis read a script as ACP" }
+          if ($logged -notmatch 'Setup\.nsi.*\(UTF8\)') { throw "makensis did not read Setup.nsi as UTF-8" }
           if (-not (Test-Path -LiteralPath $outFile)) { throw "Installer was not produced at $outFile" }
+          python installer/check_installer_strings.py $outFile
           $portable = "portable-staging"
           if (Test-Path $portable) { Remove-Item $portable -Recurse -Force }
           Copy-Item $src $portable -Recurse
