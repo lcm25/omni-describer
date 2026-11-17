@@ -207,6 +207,8 @@ jobs:
           Compress-Archive -Path "$portable/*" -DestinationPath $portableZip
           echo "SETUP=$setup" >> $env:GITHUB_ENV
           echo "PORTABLE=$portableZip" >> $env:GITHUB_ENV
+          # The scanner opens the zip and skips the LZMA installer body.
+          # A hit must be a full key, not the four bytes "xai-" or the model id xai-tts.
           python installer/scan_for_secrets.py dist $setup $portableZip
 
       - name: Upload installer
