@@ -16,6 +16,7 @@ class EditDescriptionDialog(wx.Dialog):
         self.current_edit_original_index = -1
         self.current_duration_sec = 0.0
         self._seek_callback = seek_callback
+        self.show_long_only = False
  
         panel = wx.Panel(self)
         main_panel_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -52,6 +53,16 @@ class EditDescriptionDialog(wx.Dialog):
 
         edit_sizer.Add(grid_sizer, 1, wx.EXPAND | wx.ALL, 5)
         desc_sizer.Add(edit_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        self.long_only_checkbox = wx.CheckBox(desc_panel, label=_("Show lon&g ones only"))
+        desc_sizer.Add(self.long_only_checkbox, 0, wx.ALL, 5)
+        length_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        self.suggest_button = wx.Button(desc_panel, label=_("Suggest shor&ter texts"))
+        self.batch_button = wx.Button(desc_panel, label=_("Shorten all &long ones"))
+        length_buttons.Add(self.suggest_button, 0, wx.RIGHT, 5)
+        length_buttons.Add(self.batch_button, 0, wx.RIGHT, 5)
+        desc_sizer.Add(length_buttons, 0, wx.ALL, 5)
+        self.suggest_button.Hide()
+        self.batch_button.Hide()
         
         desc_panel.SetSizer(desc_sizer)
         self.notebook.AddPage(desc_panel, _("Descriptions"))
@@ -112,12 +123,17 @@ class EditDescriptionDialog(wx.Dialog):
         self.delete_button.Bind(wx.EVT_BUTTON, self.OnDelete)
         self.add_button.Bind(wx.EVT_BUTTON, self.OnAddNew)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
+        self.long_only_checkbox.Bind(wx.EVT_CHECKBOX, self.OnToggleLongOnly)
+        self.suggest_button.Bind(wx.EVT_BUTTON, self.OnSuggestShorter)
+        self.batch_button.Bind(wx.EVT_BUTTON, self.OnShortenAllLong)
 
-        # Ctrl+S accelerator for Save
         save_accel_id = wx.NewIdRef()
+        suggest_accel_id = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.OnSave, id=save_accel_id)
+        self.Bind(wx.EVT_MENU, self.OnSuggestShorter, id=suggest_accel_id)
         accel_tbl = wx.AcceleratorTable([
             (wx.ACCEL_CTRL, ord('S'), save_accel_id),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('S'), suggest_accel_id),
         ])
         self.SetAcceleratorTable(accel_tbl)
  
@@ -153,10 +169,16 @@ class EditDescriptionDialog(wx.Dialog):
             self.desc_combo.SetSelection(0)
             return
 
+        long_indexes = {item["index"] for item in self._long_reports()} if self.show_long_only else None
         for i, (start, end, text) in enumerate(self.all_descriptions):
+            if long_indexes is not None and i not in long_indexes:
+                continue
             preview_text = text.replace('\n', ' ').strip()[:40] + "..."
             display_string = f"[{start:.2f}s] {preview_text}"
             self.desc_combo.Append(display_string, clientData=i)
+        if self.desc_combo.GetCount() == 0:
+            self.desc_combo.Append(_("(No descriptions available)"), clientData=-1)
+            self.desc_combo.SetSelection(0)
 
     def find_combo_item_by_original_index(self, original_idx):
         for i in range(self.desc_combo.GetCount()):
@@ -166,7 +188,8 @@ class EditDescriptionDialog(wx.Dialog):
 
     def update_edit_fields_from_combo(self):
         sel_idx = self.desc_combo.GetSelection()
-        is_enabled = sel_idx != wx.NOT_FOUND and bool(self.all_descriptions)
+        original_idx = self.desc_combo.GetClientData(sel_idx) if sel_idx != wx.NOT_FOUND else -1
+        is_enabled = sel_idx != wx.NOT_FOUND and bool(self.all_descriptions) and original_idx is not None and original_idx >= 0
         
         self.start_time_ctrl.Enable(is_enabled)
         self.end_time_ctrl.Enable(is_enabled)
@@ -180,9 +203,10 @@ class EditDescriptionDialog(wx.Dialog):
             self.edit_text_ctrl.SetValue("")
             self.current_edit_original_index = -1
             self.current_duration_sec = 0.0
+            self.suggest_button.Hide()
+            self.batch_button.Show(bool(self._long_reports()))
             return
 
-        original_idx = self.desc_combo.GetClientData(sel_idx)
         self.current_edit_original_index = original_idx
         start, end, text = self.all_descriptions[original_idx]
         
@@ -190,10 +214,114 @@ class EditDescriptionDialog(wx.Dialog):
         self.start_time_ctrl.SetValue(f"{start:.3f}")
         self.end_time_ctrl.SetValue(f"{end:.3f}")
         self.edit_text_ctrl.SetValue(text)
+        self._update_length_buttons(announce=False)
 
     def OnDescriptionSelect(self, event):
         self.update_edit_fields_from_combo()
+        self._update_length_buttons(announce=True)
         self._seek_to_current_description()
+
+    def _pace(self):
+        from ..core.speech_fit import chars_per_second_for
+        from ..models import config_model
+        provider = config_model.get_setting("narration_provider") or "windows"
+        rate = config_model.get_setting("narration_rate_percent") or config_model.get_setting("sapi5_voice_rate_percent") or 100
+        return chars_per_second_for(provider, config_model.get_setting("narration_measured_cps")), int(rate)
+
+    def _long_reports(self):
+        from ..core.speech_fit import long_descriptions
+        pace, rate = self._pace()
+        return long_descriptions(self.all_descriptions, pace, rate, self.video_duration)
+
+    def _current_fit(self):
+        from ..core.speech_fit import fit_report
+        if self.current_edit_original_index < 0:
+            return None
+        pace, rate = self._pace()
+        return fit_report(self.all_descriptions, self.current_edit_original_index, pace, rate, self.video_duration)
+
+    def _update_length_buttons(self, announce):
+        from ..core.speech_fit import format_seconds
+        from ..models import config_model
+        from .accessibility_utils import speak_message
+        report = self._current_fit()
+        any_long = bool(self._long_reports())
+        current_long = bool(report and report["too_long"])
+        self.suggest_button.Show(current_long)
+        self.batch_button.Show(any_long)
+        self.Layout()
+        if announce and current_long:
+            language = config_model.get_setting("application_language") or ""
+            speak_message(_("Too long: %s s for %s s") % (
+                format_seconds(report["need"], language),
+                format_seconds(report["slot"], language),
+            ))
+
+    def OnToggleLongOnly(self, event):
+        from .accessibility_utils import speak_message
+        self.show_long_only = self.long_only_checkbox.GetValue()
+        self.populate_combo_box()
+        if self.desc_combo.GetCount():
+            self.desc_combo.SetSelection(0)
+        self.update_edit_fields_from_combo()
+        count = len(self._long_reports()) if self.show_long_only else len(self.all_descriptions)
+        speak_message(_("%d descriptions.") % count)
+        self.desc_combo.SetFocus()
+
+    def OnSuggestShorter(self, event):
+        report = self._current_fit()
+        if not report or not report["too_long"]:
+            return
+        self._offer_shorter(self.current_edit_original_index, allow_stop=False)
+
+    def OnShortenAllLong(self, event):
+        from .accessibility_utils import speak_message
+        indexes = [item["index"] for item in self._long_reports()]
+        if not indexes:
+            return
+        speak_message(_("%d long descriptions. Each one waits for your choice.") % len(indexes))
+        for index in indexes:
+            if not self._offer_shorter(index, allow_stop=True):
+                break
+        self.populate_combo_box()
+        self.update_edit_fields_from_combo()
+
+    def _offer_shorter(self, index, allow_stop):
+        from ..core.shorten import build_shorten_prompt, parse_alternatives
+        from ..core.audio_describer import complete_text
+        from ..i18n_setup import description_language_name
+        from ..models import config_model
+        from .shorten_dialog import ShortenChoiceDialog
+        start, end, text = self.all_descriptions[index]
+        pace, _rate = self._pace()
+        from ..core.speech_fit import fit_report
+        report = fit_report(self.all_descriptions, index, pace, self._pace()[1], self.video_duration)
+        before = self.all_descriptions[index - 1][2] if index > 0 else ""
+        after = self.all_descriptions[index + 1][2] if index + 1 < len(self.all_descriptions) else ""
+        language = description_language_name(config_model.get_setting("application_language") or "en")
+        prompt = build_shorten_prompt(text, language, max(report["slot"], 0.4), pace, {"before": before, "after": after}, self.character_glossary)
+        try:
+            raw = complete_text(prompt["system"], prompt["user"])
+        except Exception as exc:
+            wx.MessageBox(str(exc), _("Error"), wx.OK | wx.ICON_ERROR, self)
+            return False
+        alternatives = parse_alternatives(raw)
+        if len(alternatives) < 1:
+            wx.MessageBox(_("The model did not return a shorter text."), _("Error"), wx.OK | wx.ICON_INFORMATION, self)
+            return not allow_stop
+        with ShortenChoiceDialog(self, alternatives, allow_stop=allow_stop) as dialog:
+            result = dialog.ShowModal()
+            stopped = dialog.stopped
+            choice = dialog.choice
+        if result == wx.ID_NO or stopped:
+            return False
+        if result == wx.ID_OK and choice:
+            self.all_descriptions[index] = (start, end, choice)
+            if index == self.current_edit_original_index:
+                self.edit_text_ctrl.SetValue(choice)
+            from .accessibility_utils import speak_message
+            speak_message(_("Text replaced."))
+        return True
 
     def _seek_to_current_description(self):
         """Seeks the player to the start time of the currently selected description."""

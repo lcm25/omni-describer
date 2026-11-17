@@ -2073,3 +2073,332 @@ msgstr ""
 msgid "Updater Missing"
 msgstr "Atualizador ausente"
 
+
+#: narration-and-analysis
+msgid "Windows voices"
+msgstr "Vozes do Windows"
+
+#: narration-and-analysis
+msgid "Piper"
+msgstr "Piper"
+
+#: narration-and-analysis
+msgid "Gemini"
+msgstr "Gemini"
+
+#: narration-and-analysis
+msgid "ElevenLabs"
+msgstr "ElevenLabs"
+
+#: narration-and-analysis
+msgid "MVSEP"
+msgstr "MVSEP"
+
+#: narration-and-analysis
+msgid "OpenAI"
+msgstr "OpenAI"
+
+#: narration-and-analysis
+msgid "Azure Speech"
+msgstr "Azure Speech"
+
+#: narration-and-analysis
+msgid "Cartesia"
+msgstr "Cartesia"
+
+#: narration-and-analysis
+msgid "Fish Audio"
+msgstr "Fish Audio"
+
+#: narration-and-analysis
+msgid "MiniMax"
+msgstr "MiniMax"
+
+#: narration-and-analysis
+msgid "Speechma"
+msgstr "Speechma"
+
+#: narration-and-analysis
+msgid "xAI"
+msgstr "xAI"
+
+#: narration-and-analysis
+msgid "Speechify"
+msgstr "Speechify"
+
+#: narration-and-analysis
+msgid "Deepgram"
+msgstr "Deepgram"
+
+#: narration-and-analysis
+msgid "Murf"
+msgstr "Murf"
+
+#: narration-and-analysis
+msgid "Windows OneCore"
+msgstr "Windows OneCore"
+
+#: narration-and-analysis
+msgid "SAPI 5"
+msgstr "SAPI 5"
+
+#: narration-and-analysis
+msgid "SAPI 5 (32-bit voices)"
+msgstr "SAPI 5 (vozes de 32 bits)"
+
+#: narration-and-analysis
+msgid "Piper — local ONNX voices"
+msgstr "Piper — vozes locais ONNX"
+
+#: narration-and-analysis
+msgid "Gemini 2.5 Flash TTS"
+msgstr "Gemini 2.5 Flash TTS"
+
+#: narration-and-analysis
+msgid "Gemini 2.5 Pro TTS"
+msgstr "Gemini 2.5 Pro TTS"
+
+#: narration-and-analysis
+msgid "Multilingual v2"
+msgstr "Multilingual v2"
+
+#: narration-and-analysis
+msgid "Turbo v2.5"
+msgstr "Turbo v2.5"
+
+#: narration-and-analysis
+msgid "VibeVoice — TTS"
+msgstr "VibeVoice — TTS"
+
+#: narration-and-analysis
+msgid "Qwen3-TTS — custom voice"
+msgstr "Qwen3-TTS — voz personalizada"
+
+#: narration-and-analysis
+msgid "Qwen3-TTS — voice design"
+msgstr "Qwen3-TTS — desenho de voz"
+
+#: narration-and-analysis
+msgid "VibeVoice — voice clone"
+msgstr "VibeVoice — clonagem de voz"
+
+#: narration-and-analysis
+msgid "Qwen3-TTS — voice clone"
+msgstr "Qwen3-TTS — clonagem de voz"
+
+#: narration-and-analysis
+msgid "GPT-4o mini TTS"
+msgstr "GPT-4o mini TTS"
+
+#: narration-and-analysis
+msgid "TTS-1"
+msgstr "TTS-1"
+
+#: narration-and-analysis
+msgid "TTS-1 HD"
+msgstr "TTS-1 HD"
+
+#: narration-and-analysis
+msgid "Azure Speech voices"
+msgstr "Vozes do Azure Speech"
+
+#: narration-and-analysis
+msgid "Sonic 3.5"
+msgstr "Sonic 3.5"
+
+#: narration-and-analysis
+msgid "Sonic 3"
+msgstr "Sonic 3"
+
+#: narration-and-analysis
+msgid "S2 Pro"
+msgstr "S2 Pro"
+
+#: narration-and-analysis
+msgid "S1"
+msgstr "S1"
+
+#: narration-and-analysis
+msgid "Speech 2.6 HD"
+msgstr "Speech 2.6 HD"
+
+#: narration-and-analysis
+msgid "Speech 2.6 Turbo"
+msgstr "Speech 2.6 Turbo"
+
+#: narration-and-analysis
+msgid "Speechma voices"
+msgstr "Vozes Speechma"
+
+#: narration-and-analysis
+msgid "xAI text to speech"
+msgstr "xAI — texto para fala"
+
+#: narration-and-analysis
+msgid "Simba 3.5"
+msgstr "Simba 3.5"
+
+#: narration-and-analysis
+msgid "Simba 3.0"
+msgstr "Simba 3.0"
+
+#: narration-and-analysis
+msgid "Flux TTS"
+msgstr "Flux TTS"
+
+#: narration-and-analysis
+msgid "Falcon 2.1"
+msgstr "Falcon 2.1"
+
+#: narration-and-analysis
+msgid "Gen2"
+msgstr "Gen2"
+
+#: narration-and-analysis
+msgid "Anthropic"
+msgstr "Anthropic"
+
+#: narration-and-analysis
+msgid "Qwen (DashScope)"
+msgstr "Qwen (DashScope)"
+
+#: narration-and-analysis
+msgid "OpenRouter"
+msgstr "OpenRouter"
+
+#: narration-and-analysis
+msgid "Twelve Labs"
+msgstr "Twelve Labs"
+
+#: narration-and-analysis
+#, python-format
+msgid "%d descriptions."
+msgstr "%d descrições."
+
+#: narration-and-analysis
+#, python-format
+msgid "%d long descriptions. Each one waits for your choice."
+msgstr "%d descrições longas. Cada uma espera a sua escolha."
+
+#: narration-and-analysis
+msgid "&Keep original"
+msgstr "&Manter o original"
+
+#: narration-and-analysis
+msgid "&Use this text"
+msgstr "&Usar este texto"
+
+#: narration-and-analysis
+msgid "API key for this narration provider:"
+msgstr "Chave de API deste provedor de narração:"
+
+#: narration-and-analysis
+msgid "API key for this provider:"
+msgstr "Chave de API deste provedor:"
+
+#: narration-and-analysis
+msgid "Analysis model:"
+msgstr "Modelo de análise:"
+
+#: narration-and-analysis
+msgid "Azure region (for example brazilsouth):"
+msgstr "Região do Azure (por exemplo, brazilsouth):"
+
+#: narration-and-analysis
+msgid "Could not read frames from the video."
+msgstr "Não foi possível ler os quadros do vídeo."
+
+#: narration-and-analysis
+msgid "Custom model name"
+msgstr "Nome de modelo personalizado"
+
+#: narration-and-analysis
+msgid "Custom model name:"
+msgstr "Nome do modelo personalizado:"
+
+#: narration-and-analysis
+msgid "Narration model:"
+msgstr "Modelo de narração:"
+
+#: narration-and-analysis
+msgid "Narration provider:"
+msgstr "Provedor da narração:"
+
+#: narration-and-analysis
+msgid "Narration voice:"
+msgstr "Voz da narração:"
+
+#: narration-and-analysis
+msgid "Piper program (piper.exe):"
+msgstr "Programa Piper (piper.exe):"
+
+#: narration-and-analysis
+msgid "S&top batch"
+msgstr "Parar o lo&te"
+
+#: narration-and-analysis
+#, python-format
+msgid "Sampling frames for %s..."
+msgstr "Coletando quadros para %s..."
+
+#: narration-and-analysis
+msgid "Shorten all &long ones"
+msgstr "Encurtar todas as &longas"
+
+#: narration-and-analysis
+msgid "Shorter texts"
+msgstr "Textos mais curtos"
+
+#: narration-and-analysis
+msgid "Show lon&g ones only"
+msgstr "Mostrar só as lon&gas"
+
+#: narration-and-analysis
+msgid "Suggest shor&ter texts"
+msgstr "Sugerir textos mais cur&tos"
+
+#: narration-and-analysis
+msgid "Text replaced."
+msgstr "Texto substituído."
+
+#: narration-and-analysis
+msgid "The model did not return a shorter text."
+msgstr "O modelo não devolveu um texto mais curto."
+
+#: narration-and-analysis
+msgid "Three shorter texts. Arrows, Enter replaces, Escape keeps the original."
+msgstr "Três textos mais curtos. Setas, Enter substitui, Escape mantém o original."
+
+#: narration-and-analysis
+msgid "Three shorter texts. Enter replaces. Escape keeps the original."
+msgstr "Três textos mais curtos. Enter substitui. Escape mantém o original."
+
+#: narration-and-analysis
+#, python-format
+msgid "Too long: %s s for %s s"
+msgstr "Longa demais: %s s para %s s"
+
+#: narration-and-analysis
+msgid "Twelve Labs analyzes a video it hosts, after an index job that can take several minutes. This version builds that request, and it does not upload your file yet. Choose Gemini for native video, or OpenAI, xAI, Anthropic, Qwen, or OpenRouter for frame sampling."
+msgstr "O Twelve Labs analisa um vídeo hospedado nele, depois de uma indexação que pode levar vários minutos. Esta versão monta esse pedido e ainda não envia o seu arquivo. Escolha Gemini para vídeo nativo, ou OpenAI, xAI, Anthropic, Qwen ou OpenRouter para amostragem de quadros."
+
+#: narration-and-analysis
+msgid "Twelve Labs reads a hosted video. Shorten suggestions use a text model. Choose Gemini, OpenAI, xAI, Anthropic, Qwen, or OpenRouter for this."
+msgstr "O Twelve Labs lê um vídeo hospedado. As sugestões de encurtar usam um modelo de texto. Escolha Gemini, OpenAI, xAI, Anthropic, Qwen ou OpenRouter para isso."
+
+#: narration-and-analysis
+msgid "Video analysis provider:"
+msgstr "Provedor de análise de vídeo:"
+
+#: narration-and-analysis
+msgid "You are looking at still frames, not the full video. Each frame is labeled with its time. Describe only what those frames show. Keep the JSON format."
+msgstr "Você está vendo quadros parados, não o vídeo inteiro. Cada quadro tem o seu tempo. Descreva só o que esses quadros mostram. Mantenha o formato JSON."
+
+#: narration-and-analysis
+msgid "&Refresh voice list"
+msgstr "Atualiza&r lista de vozes"
+
+#: narration-and-analysis
+#, python-format
+msgid "%d voices."
+msgstr "%d vozes."

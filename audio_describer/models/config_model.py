@@ -54,6 +54,22 @@ DEFAULT_SETTINGS = {
     "video_chunk_duration_seconds": 600,
     "enable_character_glossary": False,
     "tts_engine": "sapi5",
+    "narration_provider": "windows",
+    "narration_model": "",
+    "narration_voice": "",
+    "narration_style": "",
+    "narration_rate_percent": 100,
+    "narration_api_keys": {},
+    "narration_measured_cps": 0,
+    "azure_speech_region": "",
+    "piper_exe": "",
+    "piper_model": "",
+    "piper_voices_dir": "",
+    "analysis_provider": "gemini",
+    "analysis_model": "",
+    "analysis_model_custom": "",
+    "analysis_api_keys": {},
+    "twelvelabs_index_id": "",
     "sapi5_voice_id": None,
     "sapi5_voice_rate_percent": 100,
     "sapi5_voice_volume": 1.0,
@@ -249,7 +265,7 @@ def _apply_defaults_and_cleanup(settings):
     updated = False
     for key, default_value in DEFAULT_SETTINGS.items():
         if key not in settings:
-            settings[key] = default_value
+            settings[key] = default_value.copy() if isinstance(default_value, dict) else default_value
             updated = True
     obsolete_keys = [
         "sapi5_voice_rate", "gemini_top_p", "gemini_top_k",

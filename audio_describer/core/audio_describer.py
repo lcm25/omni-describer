@@ -126,6 +126,94 @@ def _cleanup_uploaded_file(client, video_file_obj, status_callback=None):
             app_logger.error(f"Failed to delete file {video_file_obj.name}: {del_e}")
 
 
+def _analysis_model_name(provider_id):
+    from .analysis_providers import CUSTOM_MODEL, FALLBACK_MODELS
+    custom = (config_model.get_setting("analysis_model_custom") or "").strip()
+    selected = (config_model.get_setting("analysis_model") or "").strip()
+    if selected == CUSTOM_MODEL and custom:
+        return custom
+    if selected and selected != CUSTOM_MODEL:
+        return selected
+    if provider_id == "gemini":
+        return _get_model_name()
+    return FALLBACK_MODELS[provider_id][0]
+
+
+def _analysis_api_key(provider_id):
+    if provider_id == "gemini":
+        return config_model.get_setting("user_gemini_api_key") or ""
+    if provider_id == "openai":
+        return config_model.get_setting("user_openai_api_key") or ""
+    if provider_id == "xai":
+        keys = config_model.get_setting("narration_api_keys") or {}
+        if isinstance(keys, dict) and keys.get("xai"):
+            return keys.get("xai")
+    keys = config_model.get_setting("analysis_api_keys") or {}
+    if isinstance(keys, dict):
+        return keys.get(provider_id) or ""
+    return ""
+
+
+def complete_text(system_text, user_text):
+    """Text-only call to the active analysis provider. Used for shorten suggestions."""
+    from .analysis_providers import active_analysis_provider, build_request, parse_chat_text, post_json
+    provider_id = active_analysis_provider(config_model.get_setting)
+    if provider_id == "gemini":
+        client = gemini.get_gemini_client()
+        model_name = _analysis_model_name("gemini")
+        config = gemini.build_generation_config(system_instruction_text=system_text, is_json_response=True, enable_thinking=False)
+        response = gemini.generate_content_with_retry(client, model=model_name, contents=[user_text], config=config)
+        text, success = gemini.process_gemini_response(response, None)
+        if not success:
+            raise GeminiAPIError(_("AI could not provide an answer."))
+        return text
+    if provider_id == "twelvelabs":
+        raise GeminiAPIError(_("Twelve Labs reads a hosted video. Shorten suggestions use a text model. Choose Gemini, OpenAI, xAI, Anthropic, Qwen, or OpenRouter for this."))
+    model_name = _analysis_model_name(provider_id)
+    _method, url, headers, body = build_request(
+        provider_id, model_name, _analysis_api_key(provider_id), system_text, user_text, frames=None, json_mode=True
+    )
+    payload = post_json(url, headers, body)
+    return parse_chat_text(payload)
+
+
+def _generate_with_frame_provider(video_path, user_prompt, update_status):
+    from .analysis_providers import (
+        active_analysis_provider, build_request, extract_frames, parse_chat_text, post_json, sample_frame_times,
+    )
+    from .video_processor import get_video_duration
+    provider_id = active_analysis_provider(config_model.get_setting)
+    if provider_id == "twelvelabs":
+        raise GeminiAPIError(_(
+            "Twelve Labs analyzes a video it hosts, after an index job that can take several minutes. "
+            "This version builds that request, and it does not upload your file yet. "
+            "Choose Gemini for native video, or OpenAI, xAI, Anthropic, Qwen, or OpenRouter for frame sampling."
+        ))
+    update_status(_("Sampling frames for %s...") % provider_id)
+    duration = get_video_duration(video_path) or 0
+    frames = extract_frames(video_path, sample_frame_times(duration))
+    if not frames:
+        raise GeminiAPIError(_("Could not read frames from the video."))
+    model_name = _analysis_model_name(provider_id)
+    system_instruction, user_prompt_text = _build_unified_prompts(user_prompt, model_name)
+    note = _(
+        "You are looking at still frames, not the full video. Each frame is labeled with its time. "
+        "Describe only what those frames show. Keep the JSON format."
+    )
+    _method, url, headers, body = build_request(
+        provider_id, model_name, _analysis_api_key(provider_id),
+        system_instruction, note + "\n" + user_prompt_text, frames=frames, json_mode=True,
+    )
+    update_status(_("Requesting descriptions and glossary from AI..."))
+    payload = post_json(url, headers, body, timeout=180)
+    raw_json_text = parse_chat_text(payload)
+    descriptions, glossary = _parse_unified_response(raw_json_text, update_status)
+    update_status(_("Successfully parsed %d raw descriptions. Correcting timestamps and duplicates...") % len(descriptions))
+    corrected = _post_process_mmss_timestamps(descriptions, update_status)
+    final_descriptions = _remove_consecutive_duplicates(corrected, update_status)
+    return final_descriptions, glossary, {}
+
+
 def generate_descriptions_and_glossary(video_path, user_prompt="", status_update_callback=None):
     """
     Generates both audio descriptions and a character glossary in a single AI call.
@@ -139,6 +227,10 @@ def generate_descriptions_and_glossary(video_path, user_prompt="", status_update
     if not os.path.exists(video_path):
         _update_status(_("Error: Video file not found: %s") % video_path)
         raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    from .analysis_providers import active_analysis_provider
+    if active_analysis_provider(config_model.get_setting) != "gemini":
+        return _generate_with_frame_provider(video_path, user_prompt, _update_status)
 
     video_file_obj = None
     token_usage = {}

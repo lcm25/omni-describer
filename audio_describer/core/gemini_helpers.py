@@ -1,6 +1,5 @@
 # audio_describer/core/gemini_helpers.py
 import sys
-import importlib.util
 import json
 import os
 import re
@@ -19,38 +18,19 @@ MAX_RETRIES = 3
 INITIAL_RETRY_DELAY_SEC = 5
 MAX_RETRY_DELAY_SEC = 60
 
-# --- Enhanced Debugging for PyInstaller and google-generativeai ---
-app_logger.debug(f"Python sys.path for SDK import: {sys.path}")
-google_spec = importlib.util.find_spec("google")
-if google_spec:
-    app_logger.debug(f"Found 'google' namespace package. Search locations: {google_spec.submodule_search_locations}")
-else:
-    app_logger.warning("Could not find spec for the 'google' namespace package.")
-
-genai_spec = importlib.util.find_spec("google.generativeai")
-if genai_spec:
-    app_logger.debug(f"Found 'google.generativeai' spec before import attempt. Origin: {genai_spec.origin}")
-else:
-    app_logger.warning("Could not find spec for 'google.generativeai' before import attempt. This is a likely indicator of a packaging issue.")
-# --- End Enhanced Debugging ---
-
-
-# --- Lazy-loading Gemini SDK ---
+# --- Lazy-loading Gemini SDK (google.genai only) ---
 genai = None
 types = None
-HarmCategory = None
-HarmBlockThreshold = None
-google_api_exceptions = None
 GEMINI_SDK_AVAILABLE = False
 _sdk_import_lock = threading.Lock()
 
 def _lazy_import_gemini_sdk():
     """
-    Imports the Gemini SDK modules when first needed.
+    Imports the Gemini SDK when first needed.
     This defers potential startup crashes from native libraries until they are actually used.
     """
-    global genai, types, HarmCategory, HarmBlockThreshold, google_api_exceptions, GEMINI_SDK_AVAILABLE
-    
+    global genai, types, GEMINI_SDK_AVAILABLE
+
     if GEMINI_SDK_AVAILABLE:
         return
 
@@ -62,15 +42,10 @@ def _lazy_import_gemini_sdk():
         try:
             from google import genai as genai_module
             from google.genai import types as types_module
-            from google.generativeai.types import HarmCategory as HarmCategory_module, HarmBlockThreshold as HarmBlockThreshold_module
-            import google.api_core.exceptions as google_api_exceptions_module
 
             genai = genai_module
             types = types_module
-            HarmCategory = HarmCategory_module
-            HarmBlockThreshold = HarmBlockThreshold_module
-            google_api_exceptions = google_api_exceptions_module
-            
+
             GEMINI_SDK_AVAILABLE = True
             app_logger.info(f"Successfully lazy-imported Gemini SDK. Location: {genai.__file__}")
         
@@ -137,14 +112,14 @@ def build_safety_settings():
 
     if disable_safety:
         app_logger.warning("Disabling all Gemini safety filters as per user setting.")
+        blocked = types.HarmBlockThreshold.BLOCK_NONE
         return [
-            {'category': HarmCategory.HARM_CATEGORY_HARASSMENT.name, 'threshold': HarmBlockThreshold.BLOCK_NONE.name},
-            {'category': HarmCategory.HARM_CATEGORY_HATE_SPEECH.name, 'threshold': HarmBlockThreshold.BLOCK_NONE.name},
-            {'category': HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT.name, 'threshold': HarmBlockThreshold.BLOCK_NONE.name},
-            {'category': HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT.name, 'threshold': HarmBlockThreshold.BLOCK_NONE.name},
+            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=blocked),
+            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=blocked),
+            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=blocked),
+            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=blocked),
         ]
-    else:
-        return None
+    return None
 
 def build_generation_config(system_instruction_text=None, is_json_response=False, enable_thinking=False):
     """Builds the generation config for the API call."""
@@ -226,14 +201,6 @@ def generate_content_with_retry(client, model, contents, config, status_callback
             error_str = str(e).lower()
             is_retryable = False
 
-            # Check for google.api_core rate-limit / quota / unavailable errors
-            if google_api_exceptions is not None:
-                if isinstance(e, (google_api_exceptions.ResourceExhausted,
-                                  google_api_exceptions.ServiceUnavailable,
-                                  google_api_exceptions.TooManyRequests)):
-                    is_retryable = True
-
-            # Fallback: check error message for common rate-limit indicators
             if not is_retryable:
                 for keyword in ("429", "resource exhausted", "rate limit", "quota",
                                 "503", "service unavailable", "overloaded"):
