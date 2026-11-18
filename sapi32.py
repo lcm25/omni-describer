@@ -12,28 +12,86 @@ try:
 except ImportError:
     PYTTSX3_AVAILABLE = False
 
-def list_voices():
-    """Lists available 32-bit SAPI5 voices and prints them as JSON."""
-    voice_list = []
-    try:
-        engine = pyttsx3.init('sapi5')
-        all_voices = engine.getProperty('voices')
-        engine.stop()
+def parse_sapi_language(value):
+    """Same rules as audio_describer.core.sapi_voices.parse_sapi_language."""
+    if value is None:
+        return []
+    text = str(value).strip()
+    if not text:
+        return []
+    found = []
+    for part in text.replace(",", ";").split(";"):
+        token = part.strip()
+        if not token:
+            continue
+        if token.lower().startswith("0x"):
+            token = token[2:]
+        try:
+            found.append(int(token, 16))
+        except ValueError:
+            continue
+    return found
 
-        for v in all_voices:
+
+def list_voices():
+    """32-bit SAPI tokens, including WOW6432Node. One bad Language value is skipped."""
+    voice_list = []
+    seen = set()
+    try:
+        import comtypes.client
+        sources = []
+        voice = comtypes.client.CreateObject("SAPI.SpVoice")
+        sources.append(voice.GetVoices())
+        try:
+            category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+            category.SetId(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices", False)
             try:
-                # The act of accessing these properties can trigger the bug
-                voice_data = {"name": v.name, "id": v.id, "age": v.age}
-                voice_list.append(voice_data)
-            except ValueError as e:
-                # This is where we catch the 'invalid literal for int() with base 16' error
-                print(f"Warning: Skipping a problematic SAPI5 voice. Name: {getattr(v, 'name', 'N/A')}, Error: {e}", file=sys.stderr)
+                sources.append(category.EnumerateTokens("", ""))
+            except Exception:
+                sources.append(category.EnumerateTokens())
+        except Exception as exc:
+            print(f"Warning: OneCore voices were not listed: {exc}", file=sys.stderr)
+        for tokens in sources:
+            try:
+                count = int(tokens.Count)
+            except Exception as exc:
+                print(f"Warning: SAPI voice source failed: {exc}", file=sys.stderr)
                 continue
+            for index in range(count):
+                try:
+                    token = tokens.Item(index)
+                    language = ""
+                    try:
+                        language = token.GetAttribute("Language")
+                    except Exception:
+                        language = ""
+                    parse_sapi_language(language)
+                    name = token.GetDescription() or ""
+                    voice_id = token.Id or ""
+                    if voice_id and voice_id not in seen:
+                        seen.add(voice_id)
+                        voice_list.append({"name": name or voice_id, "id": voice_id})
+                except Exception as exc:
+                    print(f"Warning: Skipping a SAPI5 voice: {exc}", file=sys.stderr)
         return voice_list
-        
-    except Exception as e:
+    except Exception as exc:
         traceback.print_exc(file=sys.stderr)
-        return {"error": f"Failed to initialize pyttsx3 or get voices: {str(e)}"}
+        return {"error": f"Failed to enumerate SAPI voices: {exc}"}
+
+def _assign_onecore_voice(engine, voice_id):
+    import comtypes.client
+    category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+    category.SetId(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices", False)
+    try:
+        tokens = category.EnumerateTokens("", "")
+    except Exception:
+        tokens = category.EnumerateTokens()
+    for index in range(int(tokens.Count)):
+        token = tokens.Item(index)
+        if getattr(token, "Id", None) == voice_id:
+            engine.proxy._driver._tts.Voice = token
+            return
+
 
 def synthesize(data):
     """Synthesizes text to a WAV file based on the provided data."""
@@ -46,7 +104,10 @@ def synthesize(data):
         engine = pyttsx3.init('sapi5')
 
         if voice_id:
-            engine.setProperty('voice', voice_id)
+            try:
+                engine.setProperty('voice', voice_id)
+            except Exception:
+                _assign_onecore_voice(engine, voice_id)
         
         engine.setProperty('rate', rate)
         engine.save_to_file(text, output_path)

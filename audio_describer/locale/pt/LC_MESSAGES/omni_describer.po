@@ -2421,3 +2421,358 @@ msgstr "Actualiza&r lista de vozes"
 #, python-format
 msgid "%d voices."
 msgstr "%d vozes."
+
+#: a11y
+msgid "&Export"
+msgstr "&Exportar"
+
+#: a11y
+msgid "1080p. Large file."
+msgstr "1080p. Ficheiro grande."
+
+#: a11y
+msgid "144p. Smallest file."
+msgstr "144p. O ficheiro mais pequeno."
+
+#: a11y
+msgid "240p. Small file."
+msgstr "240p. Ficheiro pequeno."
+
+#: a11y
+msgid "360p. Smaller download."
+msgstr "360p. Transferência mais pequena."
+
+#: a11y
+msgid "480p. Smaller download."
+msgstr "480p. Transferência mais pequena."
+
+#: a11y
+msgid "720p. A balance of picture and size."
+msgstr "720p. Equilíbrio entre imagem e tamanho."
+
+#: a11y
+msgid "A balance of detail."
+msgstr "Um equilíbrio de detalhe."
+
+#: a11y
+msgid "Added."
+msgstr "Adicionada."
+
+#: a11y
+msgid "Based on Omni Describer, created by Draqoken (audioses), MIT license."
+msgstr "Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT."
+
+#: a11y
+msgid "Best available picture. Uses the most disk and time."
+msgstr "Melhor imagem disponível. Usa mais disco e mais tempo."
+
+#: a11y
+msgid "Five frames a second. May miss fast action."
+msgstr "Cinco fotogramas por segundo. Pode perder ação rápida."
+
+#: a11y
+msgid "Jump mode."
+msgstr "Modo de salto."
+
+#: a11y
+msgid "Longer, richer lines."
+msgstr "Linhas mais longas e ricas."
+
+#: a11y
+msgid "One frame a second."
+msgstr "Um fotograma por segundo."
+
+#: a11y
+msgid "Read &prompt"
+msgstr "Ler &prompt"
+
+#: a11y
+msgid "Read &tokens"
+msgstr "Ler &tokens"
+
+#: a11y
+#, python-format
+msgid "Ready. %d descriptions."
+msgstr "Pronto. %d descrições."
+
+#: a11y
+msgid "Saved."
+msgstr "Guardado."
+
+#: a11y
+msgid "Scene Explorer opened. Use arrow keys to move. Press D for scene description, L to list all objects, and Shift + L to enter jump mode. Escape to close. Press C for coordinates."
+msgstr "Explorador de cena aberto. Use as setas para se mover. Prima D para a descrição da cena, L para listar os objetos e Shift + L para o modo de salto. Escape fecha. Prima C para as coordenadas."
+
+#: a11y
+msgid "Send every frame. Highest cost."
+msgstr "Envia todos os fotogramas. Custo mais alto."
+
+#: a11y
+msgid "Split a long video into parts before analysis."
+msgstr "Divide um vídeo longo em partes antes da análise."
+
+#: a11y
+msgid "Ten frames a second."
+msgstr "Dez fotogramas por segundo."
+
+#: a11y
+msgid "Two frames a second."
+msgstr "Dois fotogramas por segundo."
+
+#: a11y
+msgid "Very short lines."
+msgstr "Linhas muito curtas."
+
+#: a11y
+msgid "Video"
+msgstr "Vídeo"
+
+#: a11y
+msgid "Volume"
+msgstr "Volume"
+
+msgid "Export &video with audio description"
+msgstr "Exportar &vídeo com audiodescrição"
+
+msgid "MP4 video (*.mp4)|*.mp4"
+msgstr "Vídeo MP4 (*.mp4)|*.mp4"
+
+msgid "Save video with audio description"
+msgstr "Guardar vídeo com audiodescrição"
+
+msgid "FFmpeg failed to write the video. Check FFmpeg and the video file."
+msgstr "O FFmpeg não conseguiu gravar o vídeo. Verifique o FFmpeg e o ficheiro de vídeo."
+
+msgid "&Duck original audio under the narration"
+msgstr "Re&duzir o áudio original durante a narração"
+
+msgid "Ducking level (-dB):"
+msgstr "Nível da redução (-dB):"
+
+msgid "&Keep the original audio as a second track"
+msgstr "&Manter o áudio original como segunda faixa"
+
+msgid "%s, failed"
+msgstr "%s, falhou"
+
+msgid "&Open Local File...\tCtrl+O"
+msgstr "&Abrir ficheiro local...\tCtrl+O"
+
+msgid "A photo, sticker, meme, or gif."
+msgstr "Uma fotografia, um autocolante, um meme ou um gif."
+
+msgid "Ask about the image"
+msgstr "Perguntar sobre a imagem"
+
+msgid "Could not describe the image."
+msgstr "Não foi possível descrever."
+
+msgid "Could not narrate."
+msgstr "Não foi possível narrar."
+
+msgid "Describe a photo or &sticker"
+msgstr "Descrever fotografia ou &autocolante"
+
+msgid "Describe an image copied to the clipboard"
+msgstr "Descrever uma imagem copiada"
+
+msgid "Describe clipboard &image\tCtrl+Shift+V"
+msgstr "Descrever &imagem da área de transferência\tCtrl+Shift+V"
+
+msgid "Describing..."
+msgstr "A descrever..."
+
+msgid "Images"
+msgstr "Imagens"
+
+msgid "No image on the clipboard."
+msgstr "Não há imagem."
+
+msgid "Open Local File"
+msgstr "Abrir ficheiro"
+
+msgid "Open a local video or image"
+msgstr "Abrir um vídeo ou uma imagem"
+
+msgid "Open photo or sticker"
+msgstr "Abrir fotografia ou autocolante"
+
+msgid "Photos and stickers"
+msgstr "Fotografias e autocolantes"
+
+msgid "The AI key is missing."
+msgstr "Falta a chave da IA."
+
+msgid "This model does not describe images."
+msgstr "Este modelo não descreve imagens."
+
+msgid "Video and images"
+msgstr "Vídeo e imagens"
+
+msgid "Video files"
+msgstr "Ficheiros de vídeo"
+
+msgid "%d percent."
+msgstr "%d por cento."
+
+msgid "&Download local model"
+msgstr "Transferir &modelo local"
+
+msgid "&Remove model"
+msgstr "&Remover modelo"
+
+msgid "Add to the Windows &context menu"
+msgstr "Adicionar ao menu de &contexto do Windows"
+
+msgid "Cancelled."
+msgstr "Cancelado."
+
+msgid "Download local model"
+msgstr "Transferir modelo local"
+
+msgid "Hear the &percent"
+msgstr "Ouvir a &percentagem"
+
+msgid "Model ready."
+msgstr "Modelo pronto."
+
+msgid "Not enough disk space."
+msgstr "Sem espaço em disco."
+
+msgid "On this computer, offline. Slower and less detailed than the cloud. Video is a few frames only."
+msgstr "Neste computador, sem internet. Mais lento e menos detalhado do que a nuvem. O vídeo entra só por alguns fotogramas."
+
+msgid "Qwen2.5-VL 3B, about 3 GB, 8 GB of RAM"
+msgstr "Qwen2.5-VL 3B, cerca de 3 GB, 8 GB de RAM"
+
+msgid "Qwen2.5-VL 7B, about 6 GB, 16 GB of RAM"
+msgstr "Qwen2.5-VL 7B, cerca de 6 GB, 16 GB de RAM"
+
+msgid "The download did not match."
+msgstr "A transferência não confere."
+
+msgid "The local model is not installed."
+msgstr "O modelo local não está instalado."
+
+msgid "Local (on this computer, offline)"
+msgstr "Local (neste computador, sem internet)"
+
+msgid "Descritudo could not open.\n\n%s\n\nThe log is at:\n%s"
+msgstr "O Descritudo não abriu.\n\n%s\n\nO registo está em:\n%s"
+
+msgid "Descritudo is free. Any amount helps."
+msgstr "O Descritudo é gratuito. Qualquer valor ajuda."
+
+msgid "Support Descritudo (&Pix)..."
+msgstr "Apoiar o Descritudo (&Pix)..."
+
+msgid "Support Descritudo (Pix)"
+msgstr "Apoiar o Descritudo (Pix)"
+
+msgid "&Copy Pix key"
+msgstr "&Copiar chave Pix"
+
+msgid "Pix key copied."
+msgstr "Chave Pix copiada."
+
+msgid "&Erase key"
+msgstr "&Apagar chave"
+
+msgid "Gemini API key:"
+msgstr "Chave da API do Gemini:"
+
+msgid "OpenAI API key:"
+msgstr "Chave da API da OpenAI:"
+
+msgid "xAI API key:"
+msgstr "Chave da API da xAI:"
+
+msgid "Anthropic API key:"
+msgstr "Chave da API da Anthropic:"
+
+msgid "Qwen API key:"
+msgstr "Chave da API da Qwen:"
+
+msgid "OpenRouter API key:"
+msgstr "Chave da API da OpenRouter:"
+
+msgid "API key:"
+msgstr "Chave da API:"
+
+msgid "Copy the Pix key to support Descritudo"
+msgstr "Copiar a chave Pix para apoiar o Descritudo"
+
+msgid "&Refresh model list"
+msgstr "&Atualizar lista de modelos"
+
+msgid "Updating voices..."
+msgstr "A atualizar vozes..."
+
+msgid "Updating models..."
+msgstr "A atualizar modelos..."
+
+msgid "%d models found."
+msgstr "%d modelos encontrados."
+
+msgid "Could not update the list."
+msgstr "Não foi possível atualizar a lista."
+
+msgid "Key erased."
+msgstr "Chave apagada."
+
+msgid "Gemma 3 4B, about 3.3 GB, 8 GB of RAM"
+msgstr "Gemma 3 4B, cerca de 3,3 GB, 8 GB de RAM"
+
+msgid "Gemma 3 12B, about 8.2 GB, 16 GB of RAM"
+msgstr "Gemma 3 12B, cerca de 8,2 GB, 16 GB de RAM"
+
+msgid "Could not list the voices."
+msgstr "Não foi possível listar as vozes."
+
+msgid "Check for updates on startup"
+msgstr "Verificar atualizações ao iniciar"
+
+msgid "Check for updates &now"
+msgstr "Verificar atualizações a&gora"
+
+msgid "Checking for updates."
+msgstr "A verificar atualizações."
+
+msgid "Descritudo %s is available. Update now?"
+msgstr "Descritudo %s disponível. Atualizar agora?"
+
+msgid "&Update"
+msgstr "&Atualizar"
+
+msgid "Not &now"
+msgstr "Agora &não"
+
+msgid "Read release n&otes"
+msgstr "Ler n&otas da versão"
+
+msgid "You are already on the latest version (%s)."
+msgstr "Já está na versão mais recente (%s)."
+
+msgid "Could not check for updates."
+msgstr "Não foi possível verificar as atualizações."
+
+msgid "Downloading the update."
+msgstr "A transferir a atualização."
+
+msgid "%d percent downloaded."
+msgstr "%d por cento transferidos."
+
+msgid "The downloaded file does not match the published checksum."
+msgstr "O ficheiro transferido não corresponde à soma publicada."
+
+msgid "The update file was not published."
+msgstr "O ficheiro da atualização não foi publicado."
+
+msgid "No release notes."
+msgstr "Não há notas da versão."
+
+msgid "Release notes"
+msgstr "Notas da versão"
+
+msgid "Gemini rejected the request because of the API version. Try again."
+msgstr "O Gemini recusou o pedido por causa da versão da API. Tente novamente."

@@ -1,4 +1,5 @@
 # audio_describer/models/prompt_model.py
+import copy
 import json
 import os
 # from . import config_model  <- This was causing the circular import.
@@ -48,6 +49,48 @@ DEFAULT_PROMPTS = {
         {
             "name": "Gaming / Let's Play",
             "prompt": "This is a video game recording. Prioritize describing critical on-screen UI elements (the HUD), such as health bars, ammo count, or mini-maps if they change. Describe the main character/avatar's actions within the game world (e.g., 'The character casts a fire spell,' 'They jump to the next platform.')."
+        }
+    ],
+    "pt_BR": [
+        {
+            "name": "Trailer de filme",
+            "prompt": "Isto é um trailer de filme. Foque em planos rápidos, marcantes e icônicos. Priorize os momentos de ação, as apresentações dramáticas dos personagens e qualquer texto na tela, como data de estreia ou logotipo do estúdio. Crie expectativa e sugira a trama sem entregar spoilers. As descrições precisam ser muito curtas para caber entre os cortes. Escreva em português do Brasil."
+        },
+        {
+            "name": "Filme de ação",
+            "prompt": "Isto é um filme de ação. Foque na coreografia: socos, chutes, esquivas e o uso de armas que importam. Descreva eventos grandes, como explosões ou perseguições de carro. Mantenha as frases curtas e firmes, no ritmo da cena. Escreva em português do Brasil."
+        },
+        {
+            "name": "Filme romântico",
+            "prompt": "Isto é um filme romântico. Priorize a proximidade entre os personagens, toques significativos (como dar as mãos) e expressões que mostrem afeto, saudade ou conflito. Descreva o clima romântico do lugar (por exemplo, 'jantar à luz de velas', 'caminhada na praia sob o luar'). Escreva em português do Brasil."
+        },
+        {
+            "name": "Comédia",
+            "prompt": "Isto é um conteúdo de comédia. Foque nas piadas visuais, na comédia física e nas situações absurdas. Descreva reações exageradas e expressões cômicas que fazem a piada funcionar. O momento da descrição importa para a graça, então seja breve e coloque a frase logo depois da piada visual. Escreva em português do Brasil."
+        },
+        {
+            "name": "Ficção científica / fantasia",
+            "prompt": "Isto é ficção científica ou fantasia. Foque no que é próprio desse mundo. Descreva tecnologia futurista, criaturas, efeitos mágicos e paisagens de outro lugar. Explique o que diferencia a imagem do mundo real (por exemplo, 'Um navio com velas luminosas atravessa uma nebulosa roxa.'). Escreva em português do Brasil."
+        },
+        {
+            "name": "Meme / vídeo viral",
+            "prompt": "Isto é um meme ou vídeo viral curto. Descreva a piada visual ou o acontecimento inesperado do jeito mais curto possível. Aponte o assunto principal e a ação que torna o vídeo engraçado ou interessante. Legendas na tela são importantes (por exemplo, 'Um gato de óculos escuros balança a cabeça no ritmo. Legenda: Na vibe.'). Escreva em português do Brasil."
+        },
+        {
+            "name": "Documentário / educativo",
+            "prompt": "Isto é um vídeo documentário ou educativo. Priorize texto na tela, rótulos, gráficos, mapas e imagens de arquivo. Para as pessoas, descreva o que fazem em relação ao assunto (por exemplo, 'A bióloga aponta uma planta específica.'). Mantenha um tom neutro e informativo. Escreva em português do Brasil."
+        },
+        {
+            "name": "Culinária / receita",
+            "prompt": "Isto é um vídeo de culinária. Descreva os ingredientes quando entram e as técnicas mostradas (por exemplo, 'picando a cebola', 'selando o bife'). Descreva o aspecto e a textura da comida nos momentos importantes (por exemplo, 'O molho engrossa e fica brilhante.'). Escreva em português do Brasil."
+        },
+        {
+            "name": "Faça você mesmo / tutorial",
+            "prompt": "Isto é um tutorial ou um vídeo de faça você mesmo. Foque no passo a passo. Diga com clareza quais ferramentas e materiais aparecem. Detalhe a ação feita no objeto e como ele está antes e depois (por exemplo, 'Ele fura a tábua no ponto marcado.'). Escreva em português do Brasil."
+        },
+        {
+            "name": "Jogo / gameplay",
+            "prompt": "Isto é a gravação de um jogo. Priorize elementos da interface que importam e que mudam, como barra de vida, munição ou minimapa. Descreva o que o personagem faz no mundo do jogo (por exemplo, 'O personagem lança um feitiço de fogo', 'Ele pula para a próxima plataforma.'). Escreva em português do Brasil."
         }
     ],
     "tr": [
@@ -103,9 +146,64 @@ def _get_prompts_file_path():
     return PROMPTS_FILE_PATH
 
 
+def is_portuguese_language(lang_code):
+    key = str(lang_code or "").replace("-", "_").lower()
+    return key in ("pt", "pt_br", "pt_pt")
+
+
 def _get_default_prompts_for_lang(lang_code):
     """Returns a copy of the default prompts for a specific language."""
-    return DEFAULT_PROMPTS.get(lang_code, []).copy()
+    if is_portuguese_language(lang_code):
+        return copy.deepcopy(DEFAULT_PROMPTS["pt_BR"])
+    return copy.deepcopy(DEFAULT_PROMPTS.get(lang_code, []))
+
+
+def merge_default_prompts(existing, english_defaults, portuguese_defaults):
+    """Add missing Brazilian defaults and replace untouched English copies.
+
+    A prompt the user created or edited is left as it is. Running this again
+    does not add duplicates.
+    """
+    pairs = list(zip(english_defaults, portuguese_defaults))
+    english_text = {item["name"]: item["prompt"] for item in english_defaults}
+    english_to_portuguese = {english["name"]: portuguese for english, portuguese in pairs}
+    portuguese_names = {item["name"] for item in portuguese_defaults}
+    result = []
+    present_portuguese = set()
+    present_english = set()
+    for item in existing or []:
+        name = item.get("name", "")
+        text = item.get("prompt", "")
+        if name in english_to_portuguese and text == english_text.get(name):
+            portuguese = english_to_portuguese[name]
+            result.append({"name": portuguese["name"], "prompt": portuguese["prompt"]})
+            present_portuguese.add(portuguese["name"])
+            present_english.add(name)
+            continue
+        result.append({"name": name, "prompt": text})
+        if name in portuguese_names:
+            present_portuguese.add(name)
+        if name in english_to_portuguese:
+            present_english.add(name)
+    for english, portuguese in pairs:
+        if portuguese["name"] in present_portuguese or english["name"] in present_english:
+            continue
+        result.append({"name": portuguese["name"], "prompt": portuguese["prompt"]})
+        present_portuguese.add(portuguese["name"])
+    return result
+
+
+def _ensure_portuguese_prompts(cache, lang_code):
+    if not is_portuguese_language(lang_code):
+        return False
+    changed = False
+    for key in ("pt_BR", "pt"):
+        merged = merge_default_prompts(cache.get(key), DEFAULT_PROMPTS["en"], DEFAULT_PROMPTS["pt_BR"])
+        if cache.get(key) != merged:
+            cache[key] = merged
+            changed = True
+    return changed
+
 
 def load_prompts():
     """Loads all prompts from the JSON file into the cache."""
@@ -115,7 +213,8 @@ def load_prompts():
 
     if not os.path.exists(file_path):
         app_logger.info(f"Prompts file not found at {file_path}. Creating with defaults.")
-        _prompts_cache = DEFAULT_PROMPTS.copy()
+        _prompts_cache = copy.deepcopy(DEFAULT_PROMPTS)
+        _prompts_cache["pt"] = copy.deepcopy(DEFAULT_PROMPTS["pt_BR"])
         save_prompts()
         return
 
@@ -125,15 +224,18 @@ def load_prompts():
         # Ensure all default languages are present
         updated = False
         for lang_code, default_list in DEFAULT_PROMPTS.items():
-            if lang_code not in _prompts_cache:
-                _prompts_cache[lang_code] = default_list.copy()
+            if lang_code not in _prompts_cache and lang_code != "pt_BR":
+                _prompts_cache[lang_code] = copy.deepcopy(default_list)
                 updated = True
+        from . import config_model
+        if _ensure_portuguese_prompts(_prompts_cache, config_model.get_setting("application_language")):
+            updated = True
         if updated:
             save_prompts()
         app_logger.info(f"Prompts loaded successfully from {file_path}.")
     except (json.JSONDecodeError, IOError) as e:
         app_logger.error(f"Error loading prompts from {file_path}: {e}. Using default prompts.")
-        _prompts_cache = DEFAULT_PROMPTS.copy()
+        _prompts_cache = copy.deepcopy(DEFAULT_PROMPTS)
 
 def save_prompts():
     """Saves the current state of the prompts cache to the JSON file."""
@@ -157,6 +259,8 @@ def get_prompts_for_language(lang_code):
     """
     if not _prompts_cache:
         load_prompts()
+    if is_portuguese_language(lang_code) and lang_code not in _prompts_cache and "pt_BR" in _prompts_cache:
+        return _prompts_cache["pt_BR"]
     return _prompts_cache.get(lang_code, _get_default_prompts_for_lang(lang_code))
 
 def set_prompts_for_language(lang_code, prompts_list):

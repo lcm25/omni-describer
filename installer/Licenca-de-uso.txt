@@ -1,0 +1,73 @@
+__APP_NAME__ — LICENÇA E TERMOS DE USO
+Leia antes de instalar ou usar.
+
+Este programa é uma adaptação gratuita feita por Leandro Maruci.
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+e publicado sob a licença MIT. A licença MIT original está reproduzida abaixo
+e continua valendo para o código. Nada nestes termos reduz os direitos que a
+licença MIT garante.
+
+Página desta versão: https://github.com/lcm25/omni-describer
+Página original: https://github.com/audioses/omni-describer
+Contato original: info@audioses.com
+
+1. AUTORIA
+O Omni Describer foi criado por Draqoken (audioses).
+Leandro Maruci adaptou e melhorou esta versão, inclusive a tradução para o
+português do Brasil, os provedores de narração e as mudanças de acessibilidade.
+O desenvolvimento contou com ferramentas de inteligência artificial.
+
+2. PROGRAMA GRATUITO
+Esta versão é oferecida de graça. Você pode instalá-la e usá-la para fins
+pessoais, educacionais ou profissionais. A licença MIT também permite outras
+formas de uso, cópia e modificação, desde que o aviso de copyright e esta
+licença acompanhem o programa.
+
+3. COMPARTILHAMENTO
+Você pode compartilhar o instalador original, sem cobrar pelo download.
+Sempre que possível, indique a página oficial desta versão.
+
+4. COMPONENTES DE TERCEIROS
+O programa usa programas de terceiros com licenças próprias, entre eles
+FFmpeg, VLC e yt-dlp. Nada aqui limita os direitos dessas licenças.
+
+5. SERVIÇOS DE VOZ E DE ANÁLISE
+Gemini, OpenAI, ElevenLabs, Azure e os demais provedores são serviços de
+terceiros. Você usa as suas próprias chaves de API, sujeitas aos preços e
+aos termos de cada serviço. O custo é de quem usa a chave. Ao divulgar áudio
+gerado, diga que a voz foi criada por inteligência artificial e respeite o
+direito de voz de outras pessoas.
+
+6. SEM GARANTIA
+O programa é oferecido como está, sem garantia. Os autores não se
+responsabilizam por perdas ou danos decorrentes do uso, na medida permitida
+pela lei.
+
+7. ACEITE
+Ao instalar, copiar ou usar o programa, você declara que leu a licença MIT
+e estes termos. Se não concordar, não instale e não use.
+
+----------------------------------------------------------------------
+LICENÇA MIT DO OMNI DESCRIBER (texto original, em inglês)
+
+MIT License
+
+Copyright (c) 2026 Draqoken
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,226 @@
+name: Build test
+
+# Builds a Windows folder, a portable zip and an NSIS installer.
+# Does not publish a GitHub Release.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build (branch, tag or SHA)
+        required: true
+        default: main
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Tag matches version.py
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:GITHUB_REF.Substring('refs/tags/v'.Length)
+          $ver = python -c "from audio_describer.version import APP_VERSION; print(APP_VERSION)"
+          if ($tag -ne $ver) { throw "Tag v$tag does not match version.py ($ver)" }
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r audio_describer/requirements.txt
+          pip install "pyinstaller<6"
+
+      - name: Fetch runtime binaries into bin dir
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force audio_describer/bin | Out-Null
+          Invoke-WebRequest https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe -OutFile audio_describer/bin/yt-dlp.exe
+          Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp -Force
+          Copy-Item (Get-ChildItem ffmpeg_tmp -Recurse -Filter ffmpeg.exe)[0].FullName  audio_describer/bin/ffmpeg.exe
+          Copy-Item (Get-ChildItem ffmpeg_tmp -Recurse -Filter ffprobe.exe)[0].FullName audio_describer/bin/ffprobe.exe
+          Invoke-WebRequest https://ftp.osuosl.org/pub/videolan/vlc/3.0.21/win64/vlc-3.0.21-win64.zip -OutFile vlc.zip
+          if ((Get-Item vlc.zip).Length -lt 1MB) { throw "vlc.zip download failed" }
+          Expand-Archive vlc.zip -DestinationPath vlc_tmp -Force
+          $vlcSrc = (Get-ChildItem vlc_tmp -Directory)[0].FullName
+          New-Item -ItemType Directory -Force audio_describer/bin/vlc | Out-Null
+          Copy-Item "$vlcSrc/libvlc.dll","$vlcSrc/libvlccore.dll" audio_describer/bin/vlc/
+          Copy-Item "$vlcSrc/plugins" audio_describer/bin/vlc/ -Recurse -Force
+          foreach ($f in @(
+            'audio_describer/bin/yt-dlp.exe',
+            'audio_describer/bin/ffmpeg.exe',
+            'audio_describer/bin/ffprobe.exe',
+            'audio_describer/bin/vlc/libvlc.dll',
+            'audio_describer/bin/vlc/plugins'
+          )) {
+            if (-not (Test-Path $f)) { throw "Missing bundled runtime: $f" }
+          }
+
+      - name: Check the Pix page is unconditional
+        run: python test_installer_pix_page.py
+
+      - name: Build app and helpers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pyinstaller build.spec
+          pyinstaller --onefile sapi32.py
+          pyinstaller --onefile updater.py
+          $slug = python -c "from audio_describer.config import APP_EXE_BASENAME; print(APP_EXE_BASENAME)"
+          $dist = "dist/${slug}_dist"
+          New-Item -ItemType Directory -Force "$dist/bin" | Out-Null
+          Copy-Item dist/sapi32.exe "$dist/bin/sapi32.exe" -Force
+          Copy-Item dist/updater.exe $dist -Force
+          if (-not (Test-Path "$dist/bin/sapi32.exe")) { throw "sapi32.exe was not placed in bin" }
+          if (-not (Test-Path "$dist/$slug.exe")) { throw "Missing $dist/$slug.exe" }
+          echo "SLUG=$slug" >> $env:GITHUB_ENV
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $slug = $env:SLUG
+          $exe = Resolve-Path "dist/${slug}_dist/$slug.exe"
+          $marker = Join-Path (Get-Location) "self-check.txt"
+          if (Test-Path $marker) { Remove-Item $marker }
+          $env:OMNI_SELF_CHECK_FILE = $marker
+          $p = Start-Process -FilePath $exe -ArgumentList "--self-check" -WorkingDirectory (Split-Path $exe) -Wait -PassThru
+          if (-not (Test-Path $marker)) { throw "self-check did not write a marker (exit $($p.ExitCode))" }
+          $text = Get-Content $marker -Raw
+          if ($text -notmatch "self-check-ok") { throw "unexpected self-check output: $text" }
+          $smoke = Join-Path (Get-Location) "smoke-window.txt"
+          if (Test-Path $smoke) { Remove-Item $smoke }
+          $env:OMNI_SMOKE_FILE = $smoke
+          $window = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -WorkingDirectory (Split-Path $exe) -PassThru
+          if (-not $window.WaitForExit(20000)) {
+            Stop-Process -Id $window.Id -Force -ErrorAction SilentlyContinue
+            throw "main window smoke test did not exit within 20s"
+          }
+          if ($window.ExitCode -ne 0) { throw "main window smoke test exited $($window.ExitCode)" }
+          if (-not (Test-Path $smoke)) { throw "main window smoke test wrote no marker" }
+          $shown = Get-Content $smoke -Raw
+          if ($shown -notmatch "main window shown") { throw "main window was not created: $shown" }
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $dest = "C:\Program Files (x86)\NSIS\makensis.exe"
+          function Find-Makensis {
+            if (Test-Path $dest) { return $dest }
+            $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+            return $null
+          }
+          $found = Find-Makensis
+          foreach ($attempt in 1..3) {
+            if ($found) { break }
+            Write-Host "choco nsis attempt $attempt"
+            choco install nsis -y --no-progress
+            Start-Sleep -Seconds (5 * $attempt)
+            $found = Find-Makensis
+          }
+          if (-not $found) {
+            Write-Host "Chocolatey did not install NSIS. Downloading the official zip."
+            $root = Join-Path $env:RUNNER_TEMP "nsis-portable"
+            New-Item -ItemType Directory -Force $root | Out-Null
+            $zip = Join-Path $root "nsis.zip"
+            $urls = @(
+              "https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11.zip/download",
+              "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip"
+            )
+            $ok = $false
+            foreach ($url in $urls) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+                if ((Get-Item $zip).Length -gt 1MB) { $ok = $true; break }
+              } catch {
+                Write-Host $_
+              }
+            }
+            if (-not $ok) { throw "NSIS download failed" }
+            Expand-Archive $zip -DestinationPath $root -Force
+            $exe = Get-ChildItem $root -Recurse -Filter makensis.exe | Select-Object -First 1
+            if (-not $exe) { throw "makensis.exe was not in the NSIS zip" }
+            $found = $exe.FullName
+          }
+          echo "MAKENSIS=$found" >> $env:GITHUB_ENV
+
+      - name: Build installer and portable zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $slug = $env:SLUG
+          $name = python -c "from audio_describer.config import APP_NAME; print(APP_NAME)"
+          $ver = python -c "from audio_describer.config import APP_VERSION; print(APP_VERSION)"
+          $src = "installer/arquivos"
+          if (Test-Path $src) { Remove-Item $src -Recurse -Force }
+          New-Item -ItemType Directory -Force $src | Out-Null
+          Copy-Item "dist/${slug}_dist/*" $src -Recurse -Force
+          $license = Get-Content installer/Licenca-de-uso.txt -Raw -Encoding UTF8
+          $license = $license.Replace("__APP_NAME__", $name)
+          $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
+          [System.IO.File]::WriteAllText("$src/Licenca-de-uso.txt", $license, $utf16)
+          $nsi = $env:MAKENSIS
+          if (-not $nsi -or -not (Test-Path $nsi)) { $nsi = "C:\Program Files (x86)\NSIS\makensis.exe" }
+          if (-not (Test-Path $nsi)) { $nsi = "makensis" }
+          $setup = "$name-Setup.exe"
+          # makensis resolves File and LicenseData from the .nsi directory, so a
+          # repo-root relative SRCDIR becomes installer\installer\arquivos.
+          $srcDir = (Resolve-Path -LiteralPath $src).Path
+          $nsiScript = (Resolve-Path -LiteralPath "installer\Setup.nsi").Path
+          $outFile = Join-Path (Get-Location).Path $setup
+          $bom = [System.IO.File]::ReadAllBytes($nsiScript)[0..2]
+          if ($bom[0] -ne 239 -or $bom[1] -ne 187 -or $bom[2] -ne 191) { throw "Setup.nsi is missing a UTF-8 BOM" }
+          $log = Join-Path (Get-Location).Path "makensis.log"
+          & $nsi "-INPUTCHARSET" "UTF8" "-DAPPNAME=$slug" "-DAPPDISPLAY=$name" "-DAPPVERSION=$ver" "-DAPPEXE=$slug.exe" "-DOUTFILE=$outFile" "-DSRCDIR=$srcDir" $nsiScript *> $log
+          Get-Content $log
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed with exit code $LASTEXITCODE" }
+          $logged = Get-Content $log -Raw
+          if ($logged -match '\(ACP\)') { throw "makensis read a script as ACP" }
+          if ($logged -notmatch 'Setup\.nsi.*\(UTF8\)') { throw "makensis did not read Setup.nsi as UTF-8" }
+          if (-not (Test-Path -LiteralPath $outFile)) { throw "Installer was not produced at $outFile" }
+          python installer/check_installer_strings.py $outFile
+          $portable = "portable-staging"
+          if (Test-Path $portable) { Remove-Item $portable -Recurse -Force }
+          Copy-Item $src $portable -Recurse
+          Set-Content -Path "$portable/portable.txt" -Value "portable" -Encoding ascii
+          $portableZip = "$name-portable.zip"
+          Compress-Archive -Path "$portable/*" -DestinationPath $portableZip
+          echo "SETUP=$setup" >> $env:GITHUB_ENV
+          echo "PORTABLE=$portableZip" >> $env:GITHUB_ENV
+          # The scanner opens the zip and skips the LZMA installer body.
+          # A hit must be a full key, not the four bytes "xai-" or the model id xai-tts.
+          python installer/scan_for_secrets.py dist $setup $portableZip
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: ${{ env.SETUP }}
+          if-no-files-found: error
+
+      - name: Upload portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-zip
+          path: ${{ env.PORTABLE }}
+          if-no-files-found: error

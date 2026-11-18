@@ -1,3 +1,5 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Not: Sadece bir kez dile getirilmiş ve başka hiçbir yerde önerilmemiş fikirler için, katkıda bulunan kişinin ismini özellikle belirterek teşekkür ediyorum. İletişim trafiği oldukça yoğun olduğu için tüm isimleri tek tek listelemem mümkün değil. Bu uygulamayı en iyi hale getirmek için katkıda bulunan herkese gönülden teşekkür ederim.
 
 v2.0 - Bakım Modu Sürümü

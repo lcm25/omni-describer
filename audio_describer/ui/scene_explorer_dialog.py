@@ -53,8 +53,8 @@ class SceneExplorer:
             app_logger.info("Scene Explorer closed and Pygame quit.")
 
     def initial_announcement(self):
-        speak_message(self._("Scene Explorer opened. Use arrow keys to move. Press D for scene description, L to list all objects, and Shift + L to enter jump mode. Escape to close."), interrupt=True)
-        self.announce_position()
+        summary = self.overall_description or self._("No overall description was provided.")
+        speak_message(summary, interrupt=True)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -84,6 +84,10 @@ class SceneExplorer:
             self.inspect_object()
         elif event.key == pygame.K_ESCAPE:
             self.running = False
+        elif event.key == pygame.K_h:
+            speak_message(self._("Scene Explorer opened. Use arrow keys to move. Press D for scene description, L to list all objects, and Shift + L to enter jump mode. Escape to close. Press C for coordinates."), interrupt=True)
+        elif event.key == pygame.K_c:
+            speak_message(f"{self.user_pos[0]}, {self.user_pos[1]}", interrupt=True)
         elif event.key == pygame.K_d:
             self.read_overall_description()
         elif event.key == pygame.K_l:
@@ -119,7 +123,7 @@ class SceneExplorer:
         
         self.mode = "list"
         self.list_selection_index = 0
-        speak_message(self._("Jump mode. Use up and down arrows to select an object. Press Enter to jump, or Escape to exit jump mode."), interrupt=True)
+        speak_message(self._("Jump mode."), interrupt=True)
         self.announce_list_item()
 
     def exit_list_mode(self):
@@ -158,8 +162,6 @@ class SceneExplorer:
         speak_message(list_announcement, interrupt=True)
 
     def announce_position(self):
-        pos_announcement = f"{self.user_pos[0]}, {self.user_pos[1]}"
-        
         object_at_pos = None
         for item in self.objects:
             coords = item.get("spatial_info", {}).get("start_coord")
@@ -168,11 +170,7 @@ class SceneExplorer:
                 break
 
         if object_at_pos:
-            full_announcement = f"{pos_announcement}, {object_at_pos}"
-        else:
-            full_announcement = pos_announcement
-
-        speak_message(full_announcement, interrupt=True)
+            speak_message(object_at_pos, interrupt=True)
 
     def inspect_object(self):
         closest_item = None

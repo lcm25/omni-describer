@@ -1,14 +1,13 @@
+from ..utils.logger import app_logger
+
 try:
-
-
-
     from accessible_output2.outputs.auto import Auto
     speaker = Auto()
     ACCESSIBLE_OUTPUT_AVAILABLE = True
 except ImportError:
     speaker = None
     ACCESSIBLE_OUTPUT_AVAILABLE = False
-    print("Warning: accessible-output2 library not found. Screen reader announcements will be disabled.")
+    app_logger.warning("accessible-output2 library not found. Screen reader announcements will be disabled.")
 
 def speak_message(message, interrupt=False):
     """
@@ -20,38 +19,40 @@ def speak_message(message, interrupt=False):
         try:
             speaker.speak(message, interrupt=interrupt)
         except Exception as e:
-            # Fallback or logging if speaking fails
-            print(f"Accessibility Speak Error: {e}. Message: {message}")
+            app_logger.warning("Accessibility speak failed: %s. Message: %s", e, message)
             # Optionally, you could try a simple print for critical messages
             # as a last resort if the screen reader integration fails.
     else:
         # Fallback for when screen reader output is not available
-        print(f"Accessibility (Fallback): {message}")
+        app_logger.info("Accessibility fallback: %s", message)
 
 
 def set_control_accessible_name(control, name):
-    """
-    Sets the accessible name for a wxPython control.
-    wxPython controls usually derive their accessible name from their label.
-    For controls without visible labels (e.g., buttons with icons only),
-    or when a more descriptive name is needed.
+    """Name a control for a screen reader without calling SetLabel.
 
-    :param control: The wxPython control.
-    :param name: The accessible name string.
+    wx.TextCtrl.SetLabel asserts and aborts the process. SetName plus an
+    Accessible subclass is safe for text boxes, choices, and buttons.
     """
-    if hasattr(control, 'SetLabel') and not control.GetLabel(): # Only if no visible label
-         control.SetLabel(name) # This might make it visible, be careful
-    
-    # For many wxPython controls, GetAccessible().SetName(name) is the way
-    # However, direct access to SetName on the accessible object might vary
-    # or require ensuring an accessible object exists.
-    # This often works:
+    if not control or not name:
+        return
     try:
-        accessible = control.GetAccessible()
-        if accessible:
-            accessible.SetName(name)
-    except Exception as e:
-        print(f"Could not set accessible name for {control}: {e}")
+        control.SetName(name)
+    except Exception as exc:
+        app_logger.warning("Could not SetName on %s: %s", control, exc)
+    try:
+        import wx
+
+        class _NamedAccessible(wx.Accessible):
+            def __init__(self, window, label):
+                super().__init__(window)
+                self._label = label
+
+            def GetName(self, childId):
+                return (wx.ACC_OK, self._label)
+
+        control.SetAccessible(_NamedAccessible(control, name))
+    except Exception as exc:
+        app_logger.warning("Could not set accessible name for %s: %s", control, exc)
     
     # For some controls, ToolTip can also serve as accessible name if other methods fail
     # control.SetToolTip(name)

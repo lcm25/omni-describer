@@ -36,10 +36,15 @@ OPENAI_VOICES = (
     "alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx",
     "sage", "shimmer", "verse", "marin", "cedar",
 )
-OPENAI_VOICES_LEGACY = tuple(v for v in OPENAI_VOICES if v not in ("ballad", "verse", "marin", "cedar"))
 
+# Official Gemini prebuilt studio voices (30). The extended library is extra
+# and comes from GET /v1beta/voices with page_token.
 GEMINI_PREBUILT_VOICES = (
-    "Kore", "Puck", "Charon", "Zephyr", "Aoede", "Fenrir", "Leda", "Orus",
+    "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede",
+    "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba",
+    "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar",
+    "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
+    "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 )
 
 # Stable ids. Display names are translated in the UI.
@@ -114,8 +119,7 @@ def models_for(provider_id):
 
 def builtin_voices(provider_id, model):
     if provider_id == "openai":
-        names = OPENAI_VOICES if str(model).startswith("gpt-4o-mini-tts") else OPENAI_VOICES_LEGACY
-        return [{"id": name, "name": name} for name in names]
+        return [{"id": name, "name": name} for name in OPENAI_VOICES]
     if provider_id == "xai":
         return [{"id": name, "name": name.capitalize()} for name in XAI_VOICES]
     if provider_id == "deepgram":
@@ -359,7 +363,8 @@ def speech_request(provider_id, model, voice, text, api_key="", language="pt-BR"
         headers["Content-Type"] = "application/ssml+xml"
         return "POST", azure_base(azure_region) + "/v1", headers, None, azure_ssml(voice, text).encode("utf-8")
     if provider_id == "gemini":
-        url = "https://generativelanguage.googleapis.com/v1beta/models/" + quote(model, safe="") + ":generateContent"
+        from .gemini_api import gemini_api_root
+        url = gemini_api_root() + "/models/" + quote(model, safe="") + ":generateContent"
         return "POST", url, headers, gemini_tts_payload(model, voice, text, style), None
     if provider_id == "elevenlabs":
         return "POST", elevenlabs_url(model, voice), headers, elevenlabs_payload(model, voice, text), None
@@ -442,17 +447,18 @@ def voice_list_request(provider_id, api_key, model=""):
     """GET/POST used to refresh the voice list. Returns method, url, headers, json or None."""
     headers = auth_headers(provider_id, api_key)
     if provider_id == "gemini":
-        return "GET", "https://generativelanguage.googleapis.com/v1beta/voices?page_size=1000", headers, None
+        from .gemini_api import gemini_api_root
+        return "GET", gemini_api_root() + "/voices?page_size=1000", headers, None
     if provider_id == "elevenlabs":
-        return "GET", "https://api.elevenlabs.io/v2/voices?page_size=100&include_total_count=false", headers, None
+        return "GET", "https://api.elevenlabs.io/v2/voices?page_size=100", headers, None
     if provider_id == "openai":
-        return "GET", "https://api.openai.com/v1/models", headers, None
+        return None
     if provider_id == "azure":
         raise ValueError("Azure voice listing needs a region; call azure voice list separately")
     if provider_id == "cartesia":
         return "GET", "https://api.cartesia.ai/voices?limit=100", headers, None
     if provider_id == "fish":
-        return "GET", "https://api.fish.audio/model?language=pt&sort_by=score&page_size=100&page_number=1", headers, None
+        return "GET", "https://api.fish.audio/model?page_size=100&page_number=1", headers, None
     if provider_id == "minimax":
         return "POST", "https://api.minimax.io/v1/get_voice", headers, {"voice_type": "all"}
     if provider_id == "speechma":
@@ -465,5 +471,71 @@ def voice_list_request(provider_id, api_key, model=""):
         chosen = "gen2" if model == "gen2" else "falcon-2.1"
         return "GET", f"https://api.murf.ai/v1/speech/voices?model={chosen}", headers, None
     if provider_id == "deepgram":
-        return "GET", "https://api.deepgram.com/v1/projects", headers, None
+        return None
     raise KeyError(provider_id)
+
+
+def next_voice_page(url, data):
+    """Next page URL, or None when this response is the last page."""
+    if not isinstance(data, dict) or not url:
+        return None
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+    token = data.get("next_page_token") or data.get("nextPageToken")
+    if token:
+        parts = urlsplit(url)
+        query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        query["page_token"] = token
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+    nxt = data.get("next_page")
+    if data.get("has_more") and isinstance(nxt, str) and nxt.startswith("http"):
+        return nxt
+    items = data.get("items") or data.get("data") or data.get("voices") or []
+    if not isinstance(items, list) or len(items) < 100:
+        return None
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    if "page_number" in query:
+        query["page_number"] = str(int(query["page_number"]) + 1)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+    return None
+
+
+def merge_voices(first, second):
+    """Keep every voice. Earlier entries win when the id repeats."""
+    found = []
+    seen = set()
+    for item in list(first or []) + list(second or []):
+        voice_id = str(item.get("id") or "")
+        if not voice_id or voice_id.lower() in seen:
+            continue
+        seen.add(voice_id.lower())
+        found.append({"id": voice_id, "name": str(item.get("name") or voice_id)})
+    return found
+
+
+def voice_catalog_report():
+    """builtin count and whether Refresh voice list calls a live catalog."""
+    live = {
+        "gemini": "yes, paginated /v1beta/voices, merged with the 30 prebuilt",
+        "elevenlabs": "yes, paginated account library",
+        "azure": "yes, full regional voices/list",
+        "cartesia": "yes, paginated",
+        "fish": "yes, paginated, all languages",
+        "minimax": "yes, voice_type=all",
+        "speechma": "yes",
+        "xai": "yes, merged with the built-in names",
+        "speechify": "yes, paginated",
+        "murf": "yes, per model",
+        "openai": "no voice-list API; the built-in 13 are the catalog",
+        "deepgram": "no voice-list API; refresh returns the built-in Flux list",
+        "mvsep": "no; two speakers on the VibeVoice model",
+        "windows": "local Windows voices, not a cloud catalog",
+        "piper": "local .onnx files in the chosen folder",
+    }
+    rows = []
+    for item in PROVIDERS:
+        provider_id = item["id"]
+        model = models_for(provider_id)[0][0]
+        count = len(builtin_voices(provider_id, model))
+        rows.append({"id": provider_id, "builtin": count, "live": live[provider_id]})
+    return rows

@@ -54,7 +54,13 @@ def _upload_and_wait_for_active(client, video_path, status_callback=None):
         upload_path = temp_copy.name
         app_logger.info(f"Upload: copied to ASCII-safe temp path for upload")
     try:
-        video_file_obj = client.files.upload(file=upload_path)
+        try:
+            video_file_obj = client.files.upload(file=upload_path)
+        except Exception as exc:
+            explained = gemini.explain_gemini_error(exc)
+            if explained is not exc:
+                raise explained from exc
+            raise
     finally:
         if temp_copy is not None:
             try:
@@ -158,6 +164,9 @@ def complete_text(system_text, user_text):
     """Text-only call to the active analysis provider. Used for shorten suggestions."""
     from .analysis_providers import active_analysis_provider, build_request, parse_chat_text, post_json
     provider_id = active_analysis_provider(config_model.get_setting)
+    if provider_id == "local":
+        from .local_model import describe_local
+        return describe_local([], user_text)
     if provider_id == "gemini":
         client = gemini.get_gemini_client()
         model_name = _analysis_model_name("gemini")
@@ -177,12 +186,34 @@ def complete_text(system_text, user_text):
     return parse_chat_text(payload)
 
 
+def _generate_with_local(video_path, update_status):
+    """Frames only. There is no local soundtrack transcript in this app."""
+    from .analysis_providers import extract_frames, sample_frame_times
+    from .image_describe import ImageDescribeError
+    from .local_model import describe_local, local_video_prompt, parse_timed_lines
+    from .video_processor import get_video_duration
+    update_status(_("Describing..."))
+    duration = get_video_duration(video_path) or 0
+    frames = extract_frames(video_path, sample_frame_times(duration))
+    if not frames:
+        raise GeminiAPIError(_("Could not read frames from the video."))
+    try:
+        text = describe_local(frames, local_video_prompt())
+    except ImageDescribeError as exc:
+        if str(exc) == "missing":
+            raise GeminiAPIError(_("The local model is not installed.")) from exc
+        raise GeminiAPIError(_("Could not describe the image.")) from exc
+    return parse_timed_lines(text, duration), [], {}
+
+
 def _generate_with_frame_provider(video_path, user_prompt, update_status):
     from .analysis_providers import (
         active_analysis_provider, build_request, extract_frames, parse_chat_text, post_json, sample_frame_times,
     )
     from .video_processor import get_video_duration
     provider_id = active_analysis_provider(config_model.get_setting)
+    if provider_id == "local":
+        return _generate_with_local(video_path, update_status)
     if provider_id == "twelvelabs":
         raise GeminiAPIError(_(
             "Twelve Labs analyzes a video it hosts, after an index job that can take several minutes. "

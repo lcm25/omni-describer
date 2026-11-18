@@ -34,33 +34,33 @@ def show_open_video_dialog(parent_window, wildcard_str):
     Shows a file dialog to select a local video file.
     Returns the selected file path or None if canceled.
     """
-    # Mark dialog title for translation
-    dialog_title = _("Open Local Video File")
-    # Mark speak message for translation, use formatting
-    speak_message(_("%s dialog.") % dialog_title)
+    paths = show_open_files_dialog(parent_window, wildcard_str, multiple=False, title=_("Open Local Video File"))
+    return paths[0] if paths else None
+
+
+def show_open_files_dialog(parent_window, wildcard_str, multiple=False, title=None):
+    """Open one file, or several when multiple is set. Returns a list."""
+    dialog_title = title or _("Open Local File")
+    style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+    if multiple:
+        style |= wx.FD_MULTIPLE
     with wx.FileDialog(
         parent_window,
-        # Message and title are arguments to wx.FileDialog, use the translated string
         message=dialog_title,
         wildcard=wildcard_str,
-        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        style=style,
     ) as file_dialog:
         if file_dialog.ShowModal() == wx.ID_CANCEL:
-            # Mark speak message for translation
-            speak_message(_("File selection cancelled."))
-            return None
-        path = file_dialog.GetPath()
-        # Mark speak message for translation, handle formatting for the filename
-        speak_message(_("File selected: %s") % os.path.basename(path)) # Announce only filename
-        return path
+            return []
+        if multiple:
+            return list(file_dialog.GetPaths())
+        return [file_dialog.GetPath()]
 
 def show_url_input_dialog(parent_window, title, initial_message="Enter URL:", is_youtube=False):
     """
     Shows a dialog to input a URL, validates it, and re-prompts on failure.
     Returns the entered URL string or None if canceled.
     """
-    speak_message(_("%s dialog.") % title)
-
     translated_initial_message = _(initial_message)
     translated_title = _(title)
 
@@ -69,17 +69,14 @@ def show_url_input_dialog(parent_window, title, initial_message="Enter URL:", is
             text_entry_dialog.SetSize((500, -1))
 
             if text_entry_dialog.ShowModal() == wx.ID_CANCEL:
-                speak_message(_("URL input cancelled."))
                 return None
 
             url = text_entry_dialog.GetValue().strip()
 
             if not url:
-                speak_message(_("No URL entered."))
                 return None
 
             if is_valid_url(url, is_youtube=is_youtube):
-                speak_message(_("URL entered."))
                 return url
             else:
                 error_title = _("Invalid URL")
@@ -97,7 +94,6 @@ def show_url_input_dialog(parent_window, title, initial_message="Enter URL:", is
                         "Please check the format (e.g., it should start with 'http://' or 'https://')."
                     )
                 wx.MessageBox(error_message, error_title, wx.OK | wx.ICON_ERROR, parent_window)
-                speak_message(f"{error_title}. {error_message}")
 
 # Example usage (not run directly, but for testing within this file if needed):
 if __name__ == '__main__':

@@ -30,6 +30,15 @@ class ProcessingDoneEvent(wx.PyEvent):
 
 EVT_PROCESSING_DONE = wx.PyEventBinder(EVT_PROCESSING_DONE_ID, 1)
 
+class _FileDrop(wx.FileDropTarget):
+    def __init__(self, window):
+        super().__init__()
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        wx.CallAfter(self.window.open_paths, list(filenames))
+        return True
+
 class MainWindow(wx.Frame):
     def __init__(self, parent, title=_("Audio Describer")):
         super(MainWindow, self).__init__(parent, title=title, size=config.DEFAULT_WINDOW_SIZE)
@@ -47,20 +56,98 @@ class MainWindow(wx.Frame):
         self.panel.SetSizerAndFit(self.sizer)
         self.Layout()
         self.Centre()
+        wx.CallAfter(self.btn_local_file.SetFocus)
+
+    def _speak_choice(self, choice, descriptions):
+        index = choice.GetSelection()
+        if 0 <= index < len(descriptions):
+            speak_message(descriptions[index])
+
+    def _add_start_choices(self, top_sizer):
+        """Quality, length, frame rate and chunking, each with one sentence on focus."""
+        quality_values = [_("Best Available"), "1080p", "720p", "480p", "360p", "240p", "144p"]
+        quality_help = [
+            _("Best available picture. Uses the most disk and time."),
+            _("1080p. Large file."),
+            _("720p. A balance of picture and size."),
+            _("480p. Smaller download."),
+            _("360p. Smaller download."),
+            _("240p. Small file."),
+            _("144p. Smallest file."),
+        ]
+        verbosity = [
+            (config.VERBOSITY_SHORT, _("Short - Concise descriptions"), _("Very short lines.")),
+            (config.VERBOSITY_STANDARD, _("Standard - Balanced detail (Default)"), _("A balance of detail.")),
+            (config.VERBOSITY_DETAILED, _("Detailed - Rich descriptions"), _("Longer, richer lines.")),
+        ]
+        rates = [
+            (0, _("No Change (Original FPS)"), _("Send every frame. Highest cost.")),
+            (10, _("10 FPS (Good balance, lower cost)"), _("Ten frames a second.")),
+            (5, _("5 FPS (Very low cost, may miss fast action)"), _("Five frames a second. May miss fast action.")),
+            (2, _("2 FPS (Extreme low cost, for static scenes)"), _("Two frames a second.")),
+            (1, _("1 FPS (Minimal cost, for static content)"), _("One frame a second.")),
+        ]
+        self._quality_values = quality_values
+        self._verbosity_values = [item[0] for item in verbosity]
+        self._rate_values = [item[0] for item in rates]
+
+        top_sizer.Add(wx.StaticText(self.panel, label=_("YouTube Video Download Quality:")), 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        self.quality_choice = wx.Choice(self.panel, choices=quality_values)
+        saved_quality = config_model.get_setting("youtube_download_quality") or "360p"
+        self.quality_choice.SetSelection(quality_values.index(saved_quality) if saved_quality in quality_values else 0)
+        self.quality_choice.Bind(wx.EVT_CHOICE, self.on_start_choice)
+        self.quality_choice.Bind(wx.EVT_SET_FOCUS, lambda event, choice=self.quality_choice, helps=quality_help: (self._speak_choice(choice, helps), event.Skip()))
+        top_sizer.Add(self.quality_choice, 0, wx.ALL | wx.EXPAND, 5)
+
+        top_sizer.Add(wx.StaticText(self.panel, label=_("Description Verbosity:")), 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        self.verbosity_choice = wx.Choice(self.panel, choices=[item[1] for item in verbosity])
+        saved_verbosity = config_model.get_setting("gemini_description_verbosity")
+        try:
+            self.verbosity_choice.SetSelection(self._verbosity_values.index(saved_verbosity))
+        except ValueError:
+            self.verbosity_choice.SetSelection(1)
+        self.verbosity_choice.Bind(wx.EVT_CHOICE, self.on_start_choice)
+        self.verbosity_choice.Bind(wx.EVT_SET_FOCUS, lambda event, choice=self.verbosity_choice, helps=[item[2] for item in verbosity]: (self._speak_choice(choice, helps), event.Skip()))
+        top_sizer.Add(self.verbosity_choice, 0, wx.ALL | wx.EXPAND, 5)
+
+        top_sizer.Add(wx.StaticText(self.panel, label=_("Frame Rate for AI Analysis:")), 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        self.rate_choice = wx.Choice(self.panel, choices=[item[1] for item in rates])
+        saved_rate = config_model.get_setting("frame_rate_for_ai")
+        try:
+            self.rate_choice.SetSelection(self._rate_values.index(saved_rate))
+        except ValueError:
+            self.rate_choice.SetSelection(0)
+        self.rate_choice.Bind(wx.EVT_CHOICE, self.on_start_choice)
+        self.rate_choice.Bind(wx.EVT_SET_FOCUS, lambda event, choice=self.rate_choice, helps=[item[2] for item in rates]: (self._speak_choice(choice, helps), event.Skip()))
+        top_sizer.Add(self.rate_choice, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.chunk_checkbox = wx.CheckBox(self.panel, label=_("Enable Video Chunking for Long Videos"))
+        self.chunk_checkbox.SetValue(bool(config_model.get_setting("enable_video_chunking")))
+        set_control_accessible_name(self.chunk_checkbox, _("Split a long video into parts before analysis."))
+        self.chunk_checkbox.Bind(wx.EVT_CHECKBOX, self.on_start_choice)
+        top_sizer.Add(self.chunk_checkbox, 0, wx.ALL | wx.EXPAND, 5)
+
+    def on_start_choice(self, event):
+        config_model.app_settings["youtube_download_quality"] = self._quality_values[self.quality_choice.GetSelection()]
+        config_model.app_settings["gemini_description_verbosity"] = self._verbosity_values[self.verbosity_choice.GetSelection()]
+        config_model.app_settings["frame_rate_for_ai"] = self._rate_values[self.rate_choice.GetSelection()]
+        config_model.app_settings["enable_video_chunking"] = self.chunk_checkbox.GetValue()
+        config_model.save_settings(config_model.app_settings)
+        if event:
+            event.Skip()
 
     def create_widgets(self):
-        full_app_display_name = config.APP_NAME_FIXED_PREFIX + config.APP_NAME_TRANSLATABLE
+        full_app_display_name = config.APP_NAME
 
         # --- Menu Bar ---
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
-        self.menu_open_local = file_menu.Append(wx.ID_OPEN, _("&Open Local Video...\tCtrl+O"), _("Open a local video file"))
+        self.menu_open_local = file_menu.Append(wx.ID_OPEN, _("&Open Local File...\tCtrl+O"), _("Open a local video or image"))
+        self.menu_clipboard_image = file_menu.Append(wx.ID_ANY, _("Describe clipboard &image\tCtrl+Shift+V"), _("Describe an image copied to the clipboard"))
         self.menu_open_url = file_menu.Append(wx.ID_ANY, _("Open Video from &URL...\tCtrl+U"), _("Open a video from a direct URL"))
         self.menu_open_youtube = file_menu.Append(wx.ID_ANY, _("Open from &YouTube...\tCtrl+Y"), _("Open a video from YouTube"))
         file_menu.AppendSeparator()
         self.menu_manage_prompts = file_menu.Append(wx.ID_ANY, _("Manage &Prompt Presets..."), _("Add, edit, or delete custom prompt presets"))
-        file_menu.AppendSeparator()
-        self.menu_webapp = file_menu.Append(wx.ID_ANY, _("Open &Web Platform...\tCtrl+W"), _("Open the Omni Describer web platform in your browser"))
         file_menu.AppendSeparator()
         self.menu_settings = file_menu.Append(wx.ID_PREFERENCES, _("&Settings...\tCtrl+,"), _("Configure application settings"))
         file_menu.AppendSeparator()
@@ -72,6 +159,7 @@ class MainWindow(wx.Frame):
         self.menu_changelog = help_menu.Append(wx.ID_ANY, _("&Changelog"), _("View the application's changelog"))
         self.menu_contributors = help_menu.Append(wx.ID_ANY, _("Co&ntributors"), _("View the list of contributors"))
         self.menu_license = help_menu.Append(wx.ID_ANY, _("View &License"), _("View the application's license agreement"))
+        self.menu_pix = help_menu.Append(wx.ID_ANY, _("Support Descritudo (&Pix)..."), _("Copy the Pix key to support Descritudo"))
         help_menu.AppendSeparator()
         self.menu_about = help_menu.Append(wx.ID_ABOUT, _("&About..."), _("About %s") % full_app_display_name)
         menu_bar.Append(help_menu, _("&Help"))
@@ -87,6 +175,10 @@ class MainWindow(wx.Frame):
         set_control_accessible_name(self.btn_local_file, _("Process a local video file"))
         top_sizer.Add(self.btn_local_file, 0, wx.ALL | wx.EXPAND, 5)
 
+        self.btn_photo = wx.Button(self.panel, label=_("Describe a photo or &sticker"))
+        self.btn_photo.Bind(wx.EVT_SET_FOCUS, self.on_photo_focus)
+        top_sizer.Add(self.btn_photo, 0, wx.ALL | wx.EXPAND, 5)
+
         self.btn_direct_url = wx.Button(self.panel, label=_("Direct Video &URL"))
         set_control_accessible_name(self.btn_direct_url, _("Process a video from a direct web URL"))
         top_sizer.Add(self.btn_direct_url, 0, wx.ALL | wx.EXPAND, 5)
@@ -95,12 +187,7 @@ class MainWindow(wx.Frame):
         set_control_accessible_name(self.btn_youtube_url, _("Process a video from a YouTube URL"))
         top_sizer.Add(self.btn_youtube_url, 0, wx.ALL | wx.EXPAND, 5)
 
-        top_sizer.AddSpacer(5)
-        webapp_label = wx.StaticText(self.panel, label=_("Or try the web platform (no API key needed):"))
-        top_sizer.Add(webapp_label, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
-        self.btn_webapp = wx.Button(self.panel, label=_("Open &Web Platform"))
-        set_control_accessible_name(self.btn_webapp, _("Open the Omni Describer web platform in your browser"))
-        top_sizer.Add(self.btn_webapp, 0, wx.ALL | wx.EXPAND, 5)
+        self._add_start_choices(top_sizer)
 
         prompt_label = wx.StaticText(self.panel, label=_("Optional: Select a prompt preset to enhance generation:"))
         top_sizer.Add(prompt_label, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 5)
@@ -111,7 +198,11 @@ class MainWindow(wx.Frame):
         
         self.prompt_display_text = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(-1, 80))
         set_control_accessible_name(self.prompt_display_text, _("The full text of the selected prompt."))
+        self.prompt_display_text.SetCanFocus(False)
         top_sizer.Add(self.prompt_display_text, 0, wx.ALL | wx.EXPAND, 5)
+        self.read_prompt_button = wx.Button(self.panel, label=_("Read &prompt"))
+        self.read_prompt_button.Bind(wx.EVT_BUTTON, self.on_read_prompt)
+        top_sizer.Add(self.read_prompt_button, 0, wx.ALL | wx.EXPAND, 5)
 
         # --- Add top sizer to the main sizer ---
         self.sizer.Add(top_sizer, 0, wx.EXPAND)
@@ -141,32 +232,39 @@ class MainWindow(wx.Frame):
 
     def bind_events(self):
         self.Bind(wx.EVT_MENU, self.on_open_local_file, self.menu_open_local)
+        self.Bind(wx.EVT_MENU, self.on_clipboard_image, self.menu_clipboard_image)
+        self.panel.SetDropTarget(_FileDrop(self))
         self.Bind(wx.EVT_MENU, self.on_open_url, self.menu_open_url)
         self.Bind(wx.EVT_MENU, self.on_open_youtube, self.menu_open_youtube)
         self.Bind(wx.EVT_MENU, self.on_manage_prompts, self.menu_manage_prompts)
-        self.Bind(wx.EVT_MENU, self.on_open_webapp, self.menu_webapp)
         self.Bind(wx.EVT_MENU, self.on_settings, self.menu_settings)
         self.Bind(wx.EVT_MENU, self.on_exit, self.menu_exit)
         self.Bind(wx.EVT_MENU, self.on_help, self.menu_help)
         self.Bind(wx.EVT_MENU, self.on_open_changelog, self.menu_changelog)
         self.Bind(wx.EVT_MENU, self.on_open_contributors, self.menu_contributors)
         self.Bind(wx.EVT_MENU, self.on_open_license, self.menu_license)
+        self.Bind(wx.EVT_MENU, self.on_pix, self.menu_pix)
         self.Bind(wx.EVT_MENU, self.on_about, self.menu_about)
         self.btn_local_file.Bind(wx.EVT_BUTTON, self.on_open_local_file)
+        self.btn_photo.Bind(wx.EVT_BUTTON, self.on_open_photo)
         self.btn_direct_url.Bind(wx.EVT_BUTTON, self.on_open_url)
         self.btn_youtube_url.Bind(wx.EVT_BUTTON, self.on_open_youtube)
-        self.btn_webapp.Bind(wx.EVT_BUTTON, self.on_open_webapp)
         self.prompt_choice.Bind(wx.EVT_CHOICE, self.on_prompt_selected)
         self.settings_button.Bind(wx.EVT_BUTTON, self.on_settings)
         self.exit_button.Bind(wx.EVT_BUTTON, self.on_exit)
         self.Bind(wx.EVT_CLOSE, self.on_close_window)
         self.Bind(EVT_PROCESSING_DONE, self.on_processing_complete)
 
-    def set_processing_status(self, message, sound_file=None):
-        self.update_status_bar(message)
+    def set_processing_status(self, message, sound_file=None, speak=False):
+        self.update_status_bar(message, speak=speak)
         self.log_to_ui(message)
         if sound_file:
             sound_player.play(sound_file)
+
+    def on_read_prompt(self, event):
+        text = self.prompt_display_text.GetValue().strip()
+        if text:
+            speak_message(text)
 
     def log_to_ui(self, message):
         timestamp = time.strftime("%H:%M:%S", time.localtime())
@@ -216,10 +314,93 @@ class MainWindow(wx.Frame):
         elif value == 0: self.statusBar.SetStatusText(_("Processing..."), field)
         elif 0 < value <= 100: self.statusBar.SetStatusText(_("%s%%") % value, field)
 
+    def on_photo_focus(self, event):
+        speak_message(_("A photo, sticker, meme, or gif."))
+        event.Skip()
+
     def on_open_local_file(self, event):
-        file_path = file_dialogs.show_open_video_dialog(self, config.SUPPORTED_VIDEO_FORMATS)
-        if file_path:
-            self.start_processing_thread(video_processor.process_local_file, (file_path,), self.prompt_display_text.GetValue(), _("Preparing local file..."))
+        from ..core.image_files import media_dialog_wildcard
+        paths = file_dialogs.show_open_files_dialog(self, media_dialog_wildcard(), multiple=True, title=_("Open Local File"))
+        if paths:
+            self.open_paths(paths)
+
+    def on_open_photo(self, event):
+        from ..core.image_files import image_dialog_wildcard
+        paths = file_dialogs.show_open_files_dialog(
+            self, image_dialog_wildcard(), multiple=True, title=_("Open photo or sticker"),
+        )
+        if paths:
+            self.open_paths(paths)
+
+    def on_clipboard_image(self, event):
+        from .image_window import clipboard_image_path
+        path = clipboard_image_path()
+        if not path:
+            speak_message(_("No image on the clipboard."))
+            return
+        self.open_paths([path])
+
+    def open_paths(self, paths):
+        from ..core.image_files import is_image_path, is_video_path
+        paths = [path for path in paths if os.path.isfile(path)]
+        if not paths:
+            return
+        if not self.btn_local_file.IsEnabled():
+            self._pending_paths = getattr(self, "_pending_paths", []) + list(paths)
+            return
+        images = [path for path in paths if is_image_path(path)]
+        videos = [path for path in paths if is_video_path(path)]
+        self._video_queue = videos[1:] if videos else []
+        if images:
+            self._videos_after_images = videos
+            self._video_queue = []
+            self.describe_images(images)
+            return
+        if videos:
+            self._start_video(videos[0])
+
+    def _start_video(self, path):
+        from ..core.analysis_providers import active_analysis_provider
+        from ..models import config_model
+        initial = _("Preparing local file...")
+        if active_analysis_provider(config_model.get_setting) == "local":
+            initial = _("Describing...")
+        self.start_processing_thread(video_processor.process_local_file, (path,), self.prompt_display_text.GetValue(), initial)
+
+    def _flush_pending(self):
+        pending = getattr(self, "_pending_paths", None)
+        if pending and self.btn_local_file.IsEnabled():
+            self._pending_paths = []
+            self.open_paths(pending)
+
+    def describe_images(self, paths):
+        from .image_window import read_image
+        speak_message(_("Describing..."))
+        self.toggle_ui_elements(enable=False)
+
+        def work():
+            items = []
+            for path in paths:
+                try:
+                    items.append(read_image(path))
+                except Exception as exc:
+                    app_logger.error("Image describe failed for %s: %s", path, exc, exc_info=True)
+                    items.append({"path": path, "frames": [], "animated": False, "text": "", "error": exc})
+            wx.CallAfter(self._images_ready, items)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _images_ready(self, items):
+        from .image_window import present_images
+        self.toggle_ui_elements(enable=True)
+        present_images(self, items)
+        videos = getattr(self, "_videos_after_images", None) or []
+        self._videos_after_images = []
+        if videos:
+            self._video_queue = videos[1:]
+            self._start_video(videos[0])
+            return
+        self._flush_pending()
 
     def on_open_url(self, event):
         video_url = file_dialogs.show_url_input_dialog(
@@ -244,7 +425,7 @@ class MainWindow(wx.Frame):
 
     def start_processing_thread(self, target_function, target_args, user_prompt, initial_status_msg):
         self.log_text_ctrl.Clear()
-        self.set_processing_status(initial_status_msg, sound_file="aistart.mp3")
+        self.set_processing_status(initial_status_msg, sound_file="aistart.mp3", speak=True)
         self.update_progress_bar(0)
         self.toggle_ui_elements(enable=False)
         
@@ -306,7 +487,9 @@ class MainWindow(wx.Frame):
                     video_for_ai, chunk_duration, user_prompt, ui_status_updater
                 )
             else:
-                wx.CallAfter(self.set_processing_status, status_message, sound_file="going.mp3")
+                from ..core.analysis_providers import active_analysis_provider
+                local = active_analysis_provider(config_model.get_setting) == "local"
+                wx.CallAfter(self.set_processing_status, status_message, sound_file="going.mp3", speak=not local)
                 all_descriptions, character_glossary, main_usage = audio_describer.generate_descriptions_and_glossary(video_for_ai, user_prompt, ui_status_updater)
                 if main_usage:
                     all_descriptions_token_usage.append(main_usage)
@@ -375,11 +558,11 @@ class MainWindow(wx.Frame):
 
         video_path, descriptions, token_usage, character_glossary = event.data
         if descriptions:
-            sound_player.play("finish.mp3")
             success_msg = _("Success! Generated %d audio descriptions.") % len(descriptions)
             if character_glossary:
                 success_msg += " " + _("Identified %d characters.") % len(character_glossary)
-            self.set_processing_status(success_msg)
+            self.set_processing_status(success_msg, sound_file="finish.mp3", speak=False)
+            speak_message(_("Ready. %d descriptions.") % len(descriptions))
             
             try:
                 # Pass the glossary to the player window
@@ -391,7 +574,14 @@ class MainWindow(wx.Frame):
                 if self.is_temp_video and self.current_video_path:
                     video_processor.cleanup_temp_file(self.current_video_path)
             
-            self.set_processing_status(_("Ready for next video."))
+            self.set_processing_status(_("Ready for next video."), speak=False)
+            queue = getattr(self, "_video_queue", None) or []
+            if queue:
+                nxt = queue.pop(0)
+                self._video_queue = queue
+                self._start_video(nxt)
+                return
+            self._flush_pending()
         else:
             sound_player.play("error.mp3")
             no_desc_msg = _("Processing complete, but the AI did not generate any descriptions for this video.")
@@ -403,6 +593,7 @@ class MainWindow(wx.Frame):
 
     def toggle_ui_elements(self, enable=True):
         self.btn_local_file.Enable(enable)
+        self.btn_photo.Enable(enable)
         self.btn_direct_url.Enable(enable)
         self.btn_youtube_url.Enable(enable)
         self.prompt_choice.Enable(enable)
@@ -438,11 +629,9 @@ class MainWindow(wx.Frame):
             self.log_to_ui(f"Error opening doc file '{filename}': {e}")
             app_logger.error(f"Failed to open document '{filename}': {e}", exc_info=True)
 
-    def on_open_webapp(self, event):
-        try:
-            webbrowser.open(config.WEBAPP_URL)
-        except Exception as e:
-            app_logger.error(f"Failed to open webapp URL: {e}", exc_info=True)
+    def on_pix(self, event):
+        with PixSupportDialog(self) as dialog:
+            dialog.ShowModal()
 
     def on_help(self, event): self._open_doc_file("help.html")
     def on_open_changelog(self, event): self._open_doc_file("changes.txt")
@@ -467,7 +656,7 @@ class MainWindow(wx.Frame):
 
 class AboutDialog(wx.Dialog):
     def __init__(self, parent):
-        full_app_display_name = config.APP_NAME_FIXED_PREFIX + config.APP_NAME_TRANSLATABLE
+        full_app_display_name = config.APP_NAME
         super().__init__(parent, title=_("About %s") % full_app_display_name)
 
         dialog_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -483,17 +672,9 @@ class AboutDialog(wx.Dialog):
 
         desc_text = wx.StaticText(panel, label=_("An application to automatically generate audio descriptions for videos using Gemini AI.\n\nDeveloped with accessibility in mind."))
         panel_sizer.Add(desc_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        
-        contact_website_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        contact_label = wx.StaticText(panel, label=_("Contact:"))
-        contact_website_sizer.Add(contact_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        contact_email_text = wx.StaticText(panel, label=config.CONTACT_EMAIL)
-        contact_website_sizer.Add(contact_email_text, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        contact_website_sizer.AddStretchSpacer(1)
-        self.website_button = wx.Button(panel, label=_("Visit Website"))
-        contact_website_sizer.Add(self.website_button, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        panel_sizer.Add(contact_website_sizer, 0, wx.EXPAND | wx.ALL, 10)
-        
+        credit_text = wx.StaticText(panel, label=_("Based on Omni Describer, created by Draqoken (audioses), MIT license."))
+        panel_sizer.Add(credit_text, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
+
         panel.SetSizer(panel_sizer)
         dialog_sizer.Add(panel, 1, wx.EXPAND)
         
@@ -504,10 +685,31 @@ class AboutDialog(wx.Dialog):
 
         self.SetSizerAndFit(dialog_sizer)
         self.CentreOnParent()
-        self.website_button.Bind(wx.EVT_BUTTON, self.on_visit_website)
 
-    def on_visit_website(self, event):
-        try:
-            webbrowser.open(config.WEBSITE_URL)
-        except Exception as e:
-            app_logger.error(f"Failed to open website URL '{config.WEBSITE_URL}': {e}", exc_info=True)
+
+class PixSupportDialog(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent, title=_("Support Descritudo (Pix)"))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        text = wx.StaticText(self, label=_("Descritudo is free. Any amount helps."))
+        sizer.Add(text, 0, wx.ALL, 12)
+        self.copy_button = wx.Button(self, label=_("&Copy Pix key"))
+        sizer.Add(self.copy_button, 0, wx.ALL, 8)
+        close = wx.Button(self, wx.ID_CANCEL, _("Close"))
+        sizer.Add(close, 0, wx.ALL, 8)
+        self.SetSizerAndFit(sizer)
+        self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+        wx.CallAfter(self.copy_button.SetFocus)
+
+    def on_key(self, event):
+        if event.GetKeyCode() == wx.WXK_ESCAPE:
+            self.EndModal(wx.ID_CANCEL)
+            return
+        event.Skip()
+
+    def on_copy(self, event):
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject("+5521977425383"))
+            wx.TheClipboard.Close()
+        speak_message(_("Pix key copied."))

@@ -10,6 +10,7 @@ import logging
 import shutil
 import ctypes
 from ctypes import wintypes
+from audio_describer.utils.update_plan import skip_portable_member
 
 # --- WIN32 API DEFINITIONS ---
 SYNCHRONIZE = 0x00100000
@@ -59,7 +60,48 @@ def wait_for_process_to_exit(pid, logger):
     except Exception as e:
         logger.error(f"Exception while waiting for process: {e}", exc_info=True)
 
+def _relocate_to_temp(logger):
+    temp_dir = tempfile.gettempdir()
+    is_frozen = getattr(sys, 'frozen', False)
+    running_from_temp = temp_dir in os.path.abspath(sys.executable)
+    if running_from_temp or not is_frozen:
+        return False
+    temp_updater_path = os.path.join(temp_dir, os.path.basename(sys.executable))
+    try:
+        shutil.copy2(sys.executable, temp_updater_path)
+        subprocess.Popen([temp_updater_path] + sys.argv[1:])
+        return True
+    except Exception as e:
+        logger.error(f"Failed to relocate updater: {e}", exc_info=True)
+        sys.exit(1)
+
+
+def install_quiet():
+    """Wait for the app to exit, then run the NSIS installer without asking."""
+    try:
+        setup_path = sys.argv[2]
+        parent_pid = int(sys.argv[3])
+        app_to_relaunch = sys.argv[4]
+    except (IndexError, ValueError):
+        sys.exit(1)
+    log_dir = os.path.dirname(app_to_relaunch) or tempfile.gettempdir()
+    logger = setup_updater_logger(log_dir)
+    if _relocate_to_temp(logger):
+        sys.exit(0)
+    wait_for_process_to_exit(parent_pid, logger)
+    logger.info("Running installer quietly: %s", setup_path)
+    completed = subprocess.run([setup_path, "/S", "/UPGRADEQUIET"])
+    if completed.returncode != 0:
+        logger.error("Installer exited with code %s. Relaunching the current copy.", completed.returncode)
+        subprocess.Popen([app_to_relaunch])
+        sys.exit(completed.returncode)
+    logger.info("Installer finished. It relaunches the application.")
+    sys.exit(0)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--installer":
+        install_quiet()
     try:
         zip_path = sys.argv[1]
         extract_dir = sys.argv[2]
@@ -73,18 +115,9 @@ def main():
     logger.info("="*30); logger.info("Updater Final Stage Started.")
 
     temp_dir = tempfile.gettempdir()
-    is_frozen = getattr(sys, 'frozen', False)
-    running_from_temp = temp_dir in os.path.abspath(sys.executable)
+    if _relocate_to_temp(logger):
+        sys.exit(0)
 
-    if not running_from_temp and is_frozen:
-        temp_updater_path = os.path.join(temp_dir, os.path.basename(sys.executable))
-        try:
-            shutil.copy2(sys.executable, temp_updater_path)
-            subprocess.Popen([temp_updater_path] + sys.argv[1:])
-            sys.exit(0)
-        except Exception as e:
-            logger.error(f"Failed to relocate updater: {e}", exc_info=True); sys.exit(1)
-    
     os.chdir(temp_dir)
     logger.info(f"Updater running from temp directory: {os.getcwd()}")
     
@@ -104,6 +137,9 @@ def main():
                 for member in zip_ref.infolist():
                     member_filename = os.path.basename(member.filename)
                     
+                    if skip_portable_member(member.filename):
+                        logger.info(f"  -> Kept existing user data: {member.filename}")
+                        continue
                     if member_filename.lower() == updater_exe_name.lower():
                         # This is the new updater. Extract it with the .new extension.
                         try:

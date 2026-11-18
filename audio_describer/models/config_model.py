@@ -1,6 +1,7 @@
 # audio_describer/models/config_model.py
 import json
 import os
+import sys
 import base64
 from audio_describer import config
 
@@ -13,12 +14,61 @@ from audio_describer import config
 _OBFUSCATION_KEY = b"OmniDescriberSettingsKey2026!@#xK9"
 
 # --- File Paths ---
-if os.name == 'nt':
+def _settings_present(folder):
+    if not folder or not os.path.isdir(folder):
+        return False
+    names = ("settings.dat2", "settings.dat", "settings.dat.json", "prompts.json", "voices.json")
+    return any(os.path.isfile(os.path.join(folder, name)) for name in names)
+
+
+def migrate_legacy_settings(new_dir, legacy_dirs):
+    """Copy an older settings folder into new_dir when the new folder is empty.
+
+    The old folder is left in place, so a failed copy cannot delete the user's data.
+    """
+    if _settings_present(new_dir):
+        return False
+    new_real = os.path.abspath(new_dir)
+    for old in legacy_dirs:
+        if not old or os.path.abspath(old) == new_real or not _settings_present(old):
+            continue
+        os.makedirs(new_dir, exist_ok=True)
+        for name in os.listdir(old):
+            src = os.path.join(old, name)
+            dst = os.path.join(new_dir, name)
+            if os.path.isfile(src) and not os.path.exists(dst):
+                import shutil
+                shutil.copy2(src, dst)
+        return True
+    return False
+
+
+def _portable_data_dir():
+    """When portable.txt sits next to the frozen exe, keep settings beside it."""
+    if not getattr(sys, "frozen", False):
+        return None
+    exe_dir = os.path.dirname(sys.executable)
+    marker = os.path.join(exe_dir, config.portable_marker_name())
+    if os.path.isfile(marker):
+        return os.path.join(exe_dir, "Dados")
+    return None
+
+_portable = _portable_data_dir()
+if _portable:
+    APP_DATA_BASE_DIR = os.path.dirname(_portable)
+    APP_DATA_DIR = _portable
+elif os.name == 'nt':
     APP_DATA_BASE_DIR = os.environ.get('APPDATA', os.path.expanduser("~"))
-    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, config.APP_NAME_BASE_UNTRANSLATED)
+    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, config.APP_DATA_DIR_NAME)
 else:
     APP_DATA_BASE_DIR = os.path.expanduser("~")
-    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_NAME_BASE_UNTRANSLATED.lower().replace(" ", "_"))
+    APP_DATA_DIR = os.path.join(APP_DATA_BASE_DIR, ".config", config.APP_DATA_DIR_NAME)
+
+if not _portable:
+    migrate_legacy_settings(
+        APP_DATA_DIR,
+        [os.path.join(APP_DATA_BASE_DIR, name) for name in config.LEGACY_DATA_DIR_NAMES],
+    )
 
 try:
     if not os.path.exists(APP_DATA_DIR):
@@ -66,9 +116,14 @@ DEFAULT_SETTINGS = {
     "piper_model": "",
     "piper_voices_dir": "",
     "analysis_provider": "gemini",
+    "context_menu_enabled": False,
+    "check_updates_on_startup": True,
+    "migrated_legacy_pt_language": False,
     "analysis_model": "",
     "analysis_model_custom": "",
     "analysis_api_keys": {},
+    "cached_analysis_models": {},
+    "cached_narration_models": {},
     "twelvelabs_index_id": "",
     "sapi5_voice_id": None,
     "sapi5_voice_rate_percent": 100,
@@ -76,6 +131,8 @@ DEFAULT_SETTINGS = {
     "onecore_voice_id": None,
     "onecore_voice_rate_percent": 100,
     "mp3_audio_ducking_level_db": -15,
+    "audio_ducking_enabled": True,
+    "export_keep_original_audio": False,
     "player_volume_percent": 50,
     "webapp_banner_shown": False,
 }

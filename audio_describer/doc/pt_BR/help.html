@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omni Describer - Guia do usuário</title>
+    <title>Descritudo - Guia do usuário</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -77,15 +77,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>Guia do usuário do Omni Describer</h1>
+        <h1>Guia do usuário do Descritudo</h1>
+        <p><strong>Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.</strong></p>
         <p style="text-align: center; font-size: 1.1em; color: #566573;">Dando voz ao mundo visual com IA.</p>
 
         <div class="note">
-            <strong>Aviso importante:</strong> o Omni Describer passou a ter uma plataforma web. O aplicativo para computador está em modo de manutenção. Os recursos novos e as melhorias estão na versão web, em <a href="https://studio.binclusive.io">studio.binclusive.io</a>. A plataforma web não precisa de instalação nem de chave de API e funciona em todos os aparelhos, inclusive Mac e celular. O aplicativo para computador continua disponível para quem preferir usá-lo.
+            O Descritudo descreve vídeos, fotos e figurinhas. Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
         </div>
 
         <div class="backstory">
-            <p>Tudo começou com o meu amor por filmes. Quando percebi quantos detalhes das minhas cenas favoritas se perdiam sem uma boa audiodescrição, surgiu uma ideia: “Será que a IA não pode facilitar isso para a gente?” Eu sonhava com uma ferramenta que não só gerasse descrições, mas também deixasse o controle inteiro com a pessoa que assiste. Depois de meses de trabalho intenso, muitas tentativas e vários obstáculos técnicos, desenvolvi o Omni Describer como resultado desse sonho.</p>
+            <p>Tudo começou com o meu amor por filmes. Quando percebi quantos detalhes das minhas cenas favoritas se perdiam sem uma boa audiodescrição, surgiu uma ideia: “Será que a IA não pode facilitar isso para a gente?” Eu sonhava com uma ferramenta que não só gerasse descrições, mas também deixasse o controle inteiro com a pessoa que assiste. Depois de meses de trabalho intenso, muitas tentativas e vários obstáculos técnicos, desenvolvi o Descritudo como resultado desse sonho.</p>
         </div>
 
         <h2>Sumário</h2>
@@ -96,6 +97,8 @@
             <li><a href="#quickstart">Início rápido: gerar sua primeira descrição</a></li>
             <li><a href="#features">Principais recursos</a>
                 <ul>
+                    <li><a href="#fotos">Fotos e figurinhas</a></li>
+                    <li><a href="#local">Modelo no computador</a></li>
                     <li><a href="#player">O reprodutor de vídeo descrito</a></li>
                     <li><a href="#editing">Editar descrições: o poder de refinar</a></li>
                     <li><a href="#prompts">Gerenciar predefinições de prompt</a></li>
@@ -112,11 +115,11 @@
         </ul>
 
         <h2 id="whatis">O que há no nome?</h2>
-        <p>“Omni” vem do latim e significa “tudo”. Escolhi esse nome porque não queria que a ferramenta servisse a um único propósito. Sim, o Omni Describer existe sobretudo para tornar a mídia acessível a pessoas cegas e com baixa visão, criando audiodescrições. Mas o propósito não se limita a isso.</p>
-        <p>Este também é um <strong>instrumento de exploração</strong>. Uma crítica de cinema, um estudante, um artista ou qualquer pessoa curiosa sobre detalhes visuais pode usar recursos como o “Explorador de cena” ou o “Perguntar mais” para entrar nas camadas de um vídeo como nunca antes. O Omni Describer é uma janela para ver o mundo pelos “olhos” da IA e entendê-lo de outro jeito. Em resumo, é “um descritor de tudo, para todas as pessoas”.</p>
+        <p>Esta versão se chama Descritudo. O programa original, Omni Describer, traz “Omni” do latim, “tudo”, porque a ferramenta não deveria servir a um único propósito. Sim, o Descritudo existe sobretudo para tornar a mídia acessível a pessoas cegas e com baixa visão, criando audiodescrições. Mas o propósito não se limita a isso.</p>
+        <p>Este também é um <strong>instrumento de exploração</strong>. Uma crítica de cinema, um estudante, um artista ou qualquer pessoa curiosa sobre detalhes visuais pode usar recursos como o “Explorador de cena” ou o “Perguntar mais” para entrar nas camadas de um vídeo como nunca antes. O Descritudo é uma janela para ver o mundo pelos “olhos” da IA e entendê-lo de outro jeito. Em resumo, é “um descritor de tudo, para todas as pessoas”.</p>
 
         <h2 id="requirements">Requisitos do sistema</h2>
-        <p>Para obter o melhor desempenho do Omni Describer, recomendo atender a estes requisitos mínimos:</p>
+        <p>Para obter o melhor desempenho do Descritudo, recomendo atender a estes requisitos mínimos:</p>
         <ul>
             <li><strong>Sistema operacional:</strong> Windows 10 ou mais recente (64 bits).</li>
             <li><strong>Memória (RAM):</strong> pelo menos 4 GB de RAM.</li>
@@ -126,7 +129,7 @@
         </ul>
 
         <h2 id="setup">Primeiros passos: configurar suas chaves de API</h2>
-        <p>O Omni Describer usa serviços de IA na nuvem para analisar o vídeo e dar voz às descrições. Por isso, você precisa informar as suas próprias chaves de API antes de começar.</p>
+        <p>O Descritudo usa serviços de IA na nuvem para analisar o vídeo e dar voz às descrições. Por isso, você precisa informar as suas próprias chaves de API antes de começar.</p>
         <ol>
             <li><strong>Abra as configurações:</strong> vá ao menu <strong>Arquivo</strong> e escolha <strong>Configurações...</strong> (ou pressione <span class="key">Ctrl</span> + <span class="key">,</span>).</li>
             <li><strong>Guia Configurações de IA:</strong>
@@ -213,11 +216,12 @@
         <ul>
             <li><strong>Exportar para .TXT:</strong> um arquivo de texto simples com as descrições.</li>
             <li><strong>Exportar para .SRT:</strong> um arquivo de legenda padrão, que você pode usar em reprodutores como o VLC.</li>
-            <li><strong>Exportar áudio (MP3):</strong> talvez o recurso mais interessante. Ele dá voz às descrições com a voz escolhida nas configurações (SAPI5 ou OpenAI), mistura com o áudio original do vídeo e baixa o som de fundo durante as descrições, gerando um arquivo MP3 que você pode ouvir em qualquer lugar.</li>
+            <li><strong>Exportar áudio (MP3):</strong> o botão Exportar abre direto a janela para salvar. A narração usa a voz escolhida nas configurações, mistura com o áudio original e, se a redução estiver ligada, baixa o som de fundo durante as descrições.</li>
+            <li><strong>Exportar vídeo com audiodescrição:</strong> o botão ao lado grava um MP4. A imagem é copiada sem recompactar, e a narração entra misturada no áudio. Nas configurações dá para ligar ou desligar a redução do áudio original, ajustar o nível, e guardar o áudio original numa segunda faixa.</li>
         </ul>
 
         <h2 id="advanced-settings">Um olhar detalhado nas configurações</h2>
-        <p>A janela de configurações (<span class="key">Ctrl</span> + <span class="key">,</span>) dá um controle fino sobre o comportamento do Omni Describer.</p>
+        <p>A janela de configurações (<span class="key">Ctrl</span> + <span class="key">,</span>) dá um controle fino sobre o comportamento do Descritudo.</p>
 
         <h3>Guia Geral</h3>
         <ul>
@@ -285,9 +289,26 @@
         <p><strong>P: Por que gerar descrições demora tanto?</strong><br>
         R: O tempo depende da duração do vídeo, da velocidade da internet (para o envio à IA), da taxa de quadros escolhida e da carga atual dos serviços de IA. Dividir o vídeo em trechos é muito recomendado para vídeos longos.</p>
 
+        <h2 id="fotos">Fotos e figurinhas</h2>
+        <p>Na primeira tela, <strong>Descrever foto ou figurinha</strong> abre a foto, a figurinha, o meme ou o gif. Enquanto a descrição é feita, o leitor ouve só “Descrevendo...”. O resultado aparece num texto, já com o foco, em um parágrafo. Tab chega em <strong>Perguntar sobre a imagem</strong>; Enter envia a pergunta.</p>
+        <ul>
+            <li><span class="key">Ctrl</span> + <span class="key">C</span>: copiar a descrição</li>
+            <li><span class="key">Ctrl</span> + <span class="key">S</span>: salvar o texto ao lado da imagem. O leitor ouve “Salvo.”</li>
+            <li><span class="key">Ctrl</span> + <span class="key">L</span>: mais detalhes</li>
+            <li><span class="key">F5</span>: narrar com a voz escolhida</li>
+            <li><span class="key">Ctrl</span> + <span class="key">O</span>: abrir outra imagem sem voltar</li>
+            <li><span class="key">Esc</span>: fechar</li>
+        </ul>
+        <p>Várias imagens de uma vez viram uma lista, um item por arquivo. Enter abre a descrição. <span class="key">Ctrl</span> + <span class="key">Shift</span> + <span class="key">V</span> descreve a imagem copiada.</p>
+        <p>No Explorador, a tecla de Aplicativos mostra <strong>Descrever com Descritudo</strong> em fotos, figurinhas, gif e vídeos. Vários arquivos abrem uma só vez, um depois do outro. Se o Descritudo já estiver aberto, o arquivo vai para essa janela. No Windows 11 o item fica em <strong>Mostrar mais opções</strong> (<span class="key">Shift</span> + <span class="key">F10</span>). A instalação grava isso só para o seu usuário. A cópia portátil não mexe no registro; em Configurações, a caixa <strong>Adicionar ao menu de contexto do Windows</strong> fica desligada até você marcar.</p>
+
+        <h2 id="local">Modelo no computador</h2>
+        <p>Em Configurações, no provedor de análise, <strong>Local (no computador, sem internet)</strong> descreve sem enviar o arquivo. É mais lento e menos detalhado do que a nuvem. O vídeo entra só por alguns quadros, sem a fala. Escolha o modelo e use <strong>Baixar modelo local</strong>. O programa e o modelo são baixados na hora e ficam em Modelos, não no instalador. Esc cancela. No fim, o leitor ouve “Modelo pronto.” <strong>Remover modelo</strong> só aparece depois do download.</p>
+
         <h2 id="shortcuts">Atalhos de teclado</h2>
         <ul>
-            <li><span class="key">Ctrl</span> + <span class="key">O</span>: abrir vídeo local</li>
+            <li><span class="key">Ctrl</span> + <span class="key">O</span>: abrir vídeo ou imagem</li>
+            <li><span class="key">Ctrl</span> + <span class="key">Shift</span> + <span class="key">V</span>: descrever a imagem da área de transferência</li>
             <li><span class="key">Ctrl</span> + <span class="key">U</span>: abrir por URL direta</li>
             <li><span class="key">Ctrl</span> + <span class="key">Y</span>: abrir do YouTube</li>
             <li><span class="key">Ctrl</span> + <span class="key">,</span>: abrir configurações</li>
@@ -295,13 +316,12 @@
         </ul>
 
         <h2 id="contact">Agradecimentos, contato e colaboradores</h2>
-        <p>Muito obrigado por usar o Omni Describer. Este aplicativo reflete o meu desejo de tornar a mídia visual mais acessível e agradável para todas as pessoas. Ter usuários como você, usando a ferramenta e enviando retorno, é a maior motivação para continuar desenvolvendo.</p>
+        <p>Muito obrigado por usar o Descritudo. Este aplicativo reflete o meu desejo de tornar a mídia visual mais acessível e agradável para todas as pessoas. Ter usuários como você, usando a ferramenta e enviando retorno, é a maior motivação para continuar desenvolvendo.</p>
 
         <h3>Retorno e suporte</h3>
-        <p>Você tem uma pergunta, um relato de erro ou uma ideia de recurso novo? Quero muito saber. O melhor caminho é o e-mail. O seu retorno é precioso para deixar o Omni Describer ainda melhor.</p>
+        <p>Você tem uma pergunta, um relato de erro ou uma ideia de recurso novo? Quero muito saber. O melhor caminho é o e-mail. O seu retorno é precioso para deixar o Descritudo ainda melhor.</p>
         <ul>
-            <li><strong>E-mail:</strong> <a href="mailto:info@audioses.com">info@audioses.com</a></li>
-            <li><strong>Site:</strong> <a href="https://audioses.com" target="_blank">audioses.com</a></li>
+            <li>Para apoiar o programa, use o menu Ajuda, <strong>Apoiar o Descritudo (Pix)</strong>. A chave é +5521977425383.</li>
         </ul>
     </div>
 </body>

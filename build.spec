@@ -3,7 +3,14 @@
 
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+import sys
 from PyInstaller.utils.hooks import collect_submodules, collect_all, copy_metadata
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(SPEC)))
+from audio_describer.config import APP_EXE_BASENAME
+
+APP_SLUG = APP_EXE_BASENAME
 
 # google.genai (the new SDK) is a namespace package with data files and lazily
 # imported submodules; collect_all grabs modules + data + binaries so the frozen
@@ -14,19 +21,28 @@ genai_datas, genai_binaries, genai_hiddenimports = collect_all('google.genai')
 # the distribution is 'google-genai'. Add it explicitly so importlib.metadata
 # lookups resolve in the frozen build.
 genai_datas += copy_metadata('google-genai')
+try:
+    openai_datas, openai_binaries, openai_hiddenimports = collect_all('openai')
+except Exception:
+    openai_datas, openai_binaries, openai_hiddenimports = [], [], []
+genai_datas += openai_datas
+genai_binaries += openai_binaries
 
 # Part 1: Gather all the necessary Python modules.
 hidden_imports = [
     *genai_hiddenimports,
-    *collect_submodules('google.generativeai'),
     *collect_submodules('google.api_core'),
     *collect_submodules('google.auth'),
     *collect_submodules('cryptography'),
     'pyttsx3.drivers.sapi5',
     'pygame._sdl2.font',
     'openai',
+    *openai_hiddenimports,
+    'packaging',
+    'packaging.version',
     'grpc._cython',
     'accessible_output2',
+    *collect_submodules('PIL'),
     'vlc',  # python-vlc binding; imported lazily inside a try/except so add it
             # explicitly. The libvlc runtime itself is bundled into bin/vlc by CI.
 ]
@@ -69,7 +85,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='omni_describer',
+    name=APP_SLUG,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -91,5 +107,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='omni_describer_dist',
+    name=APP_SLUG + '_dist',
 )

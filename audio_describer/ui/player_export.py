@@ -56,6 +56,74 @@ def format_time_for_srt(total_seconds):
     milliseconds = delta.microseconds // 1000
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
+def _video_duration_seconds(video_path):
+    from ..utils.system_utils import get_ffmpeg_path
+    ffprobe = get_ffmpeg_path("ffprobe")
+    if not ffprobe:
+        return None
+    result = run_command([
+        ffprobe, "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", video_path,
+    ])
+    try:
+        return float((result.stdout or "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _video_has_audio(video_path):
+    from ..utils.system_utils import get_ffmpeg_path
+    ffprobe = get_ffmpeg_path("ffprobe")
+    if not ffprobe:
+        return True
+    result = run_command([
+        ffprobe, "-v", "error", "-select_streams", "a",
+        "-show_entries", "stream=index", "-of", "csv=p=0", video_path,
+    ])
+    return bool((result.stdout or "").strip())
+
+
+def start_video_with_ad_export(player_instance):
+    """Save dialog, then an MP4 with the picture copied and narration mixed in."""
+    if not player_instance.descriptions:
+        wx.MessageBox(gettext_("No descriptions to export."), gettext_("Export Note"), wx.OK | wx.ICON_INFORMATION, player_instance)
+        return
+    video_basename = os.path.splitext(os.path.basename(player_instance.video_path))[0]
+    from ..core.video_ad_export import described_video_filename
+    suggested = described_video_filename(video_basename)
+    wildcard = gettext_("MP4 video (*.mp4)|*.mp4")
+    with wx.FileDialog(
+        player_instance, gettext_("Save video with audio description"),
+        wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, defaultFile=suggested,
+    ) as dlg:
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        output_path = dlg.GetPath()
+    if not output_path.lower().endswith(".mp4"):
+        output_path += ".mp4"
+
+    player_instance.progress_dialog = wx.ProgressDialog(
+        gettext_("Exporting File"), gettext_("Starting..."),
+        maximum=len(player_instance.descriptions) * 3 + 5,
+        parent=player_instance,
+        style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE | wx.PD_ELAPSED_TIME | wx.PD_ESTIMATED_TIME | wx.PD_CAN_ABORT,
+    )
+    descriptions_copy = list(player_instance.descriptions)
+    thread = threading.Thread(
+        target=_perform_video_ad_export_thread,
+        args=(player_instance, output_path, descriptions_copy),
+    )
+    thread.daemon = True
+    thread.start()
+
+
+def start_mp3_export(player_instance):
+    """Most common export: MP3 save dialog, then mix. No format chooser."""
+    if not player_instance.descriptions:
+        wx.MessageBox(gettext_("No descriptions to export."), gettext_("Export Note"), wx.OK | wx.ICON_INFORMATION, player_instance)
+        return
+    _handle_av_export(player_instance, {"category": "av", "format": "mp3_ducked"})
+
 def start_export_process(player_instance):
     if not player_instance.descriptions:
         wx.MessageBox(gettext_("No descriptions to export."), gettext_("Export Note"), wx.OK | wx.ICON_INFORMATION, player_instance); return
@@ -94,7 +162,9 @@ def _handle_text_export(player_instance, options):
                 elif file_format == 'txt_line':
                     for _, _, text in descriptions:
                         f.write(f"{text}\n")
-            wx.MessageBox(gettext_("File successfully exported to:\n%s") % pathname, gettext_("Export Successful"), wx.OK | wx.ICON_INFORMATION, player_instance)
+            from .accessibility_utils import speak_message
+            speak_message(gettext_("Saved."))
+            app_logger.info("Exported text file: %s", pathname)
         except IOError as e:
             wx.MessageBox(gettext_("Error saving file: %s") % e, gettext_("Export Error"), wx.OK | wx.ICON_ERROR, player_instance)
 
@@ -225,6 +295,78 @@ def _apply_ducking_with_fades(original_audio, description_details, ducking_db):
         
     return processed_audio, []
 
+def _ducking_db():
+    enabled = config_model.get_setting("audio_ducking_enabled")
+    if enabled is None:
+        enabled = True
+    if not enabled:
+        return 0.0
+    return float(config_model.get_setting("mp3_audio_ducking_level_db"))
+
+
+def _wav_duration_seconds(path):
+    import wave
+    with wave.open(path, "rb") as handle:
+        rate = handle.getframerate() or 1
+        return handle.getnframes() / float(rate)
+
+
+def _ducking_enabled():
+    value = config_model.get_setting("audio_ducking_enabled")
+    return True if value is None else bool(value)
+
+
+def _perform_video_ad_export_thread(player_instance, output_path, descriptions):
+    from ..core.video_ad_export import build_described_video_command
+    temp_files = []
+    progress_dialog = player_instance.progress_dialog
+    try:
+        clips = []
+        for index, (start, _end, text) in enumerate(descriptions):
+            if progress_dialog.WasCancelled():
+                raise InterruptedError("User cancelled.")
+            wx.CallAfter(progress_dialog.Update, index + 1, gettext_("Synthesizing description %d of %d...") % (index + 1, len(descriptions)))
+            wav_path = os.path.join(tempfile.gettempdir(), f"desc_{index}_{os.urandom(4).hex()}.wav")
+            temp_files.append(wav_path)
+            if not tts_engine.synthesize_description_to_wav(text, wav_path):
+                raise TTSError(gettext_("Failed to synthesize description #%d.") % (index + 1))
+            duration = _wav_duration_seconds(wav_path)
+            clips.append({"path": wav_path, "start_sec": float(start), "end_sec": float(start) + duration})
+
+        wx.CallAfter(progress_dialog.Update, len(descriptions) + 2, gettext_("Mixing audio tracks..."))
+        enabled = _ducking_enabled()
+        command = build_described_video_command(
+            FFMPEG_COMMAND,
+            player_instance.video_path,
+            clips,
+            output_path,
+            ducking_enabled=enabled,
+            ducking_db=_ducking_db(),
+            keep_original_track=bool(config_model.get_setting("export_keep_original_audio")),
+            has_source_audio=_video_has_audio(player_instance.video_path),
+            video_duration_sec=_video_duration_seconds(player_instance.video_path),
+        )
+        app_logger.info("Described video command: %s", " ".join(command))
+        if progress_dialog.WasCancelled():
+            raise InterruptedError("User cancelled.")
+        result = run_command(command)
+        if result.returncode != 0:
+            app_logger.error("FFmpeg video export failed: %s", (result.stderr or "")[-500:])
+            raise TTSError(gettext_("FFmpeg failed to write the video. Check FFmpeg and the video file."))
+        wx.CallAfter(progress_dialog.Update, len(descriptions) * 3 + 5, gettext_("Export Complete."))
+        wx.PostEvent(player_instance, ExportDoneEvent(output_path=output_path))
+    except Exception as e:
+        app_logger.error(f"Error during video AD export: {e}", exc_info=True)
+        wx.PostEvent(player_instance, ExportDoneEvent(error=e))
+    finally:
+        for path in temp_files:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+
 def _perform_mp3_export_thread(player_instance, output_path, descriptions, options):
     temp_files = []
     progress_dialog = player_instance.progress_dialog
@@ -246,8 +388,7 @@ def _perform_mp3_export_thread(player_instance, output_path, descriptions, optio
 
         wx.CallAfter(progress_dialog.Update, len(descriptions) + 2, gettext_("Mixing audio tracks..."))
         original_audio = AudioSegment.from_file(original_audio_path)
-        ducking_db = float(config_model.get_setting("mp3_audio_ducking_level_db"))
-        
+        ducking_db = _ducking_db()
         mixed_audio, _ = _apply_ducking_with_fades(original_audio, description_details, ducking_db)
         
         wx.CallAfter(progress_dialog.Update, len(descriptions) + 3, gettext_("Saving to MP3..."))

@@ -28,7 +28,7 @@ class TestVoiceDoneEvent(wx.PyCommandEvent):
 class SettingsDialog(wx.Dialog):
     def __init__(self, parent, title=None):
         if title is None:
-            title = _("%s Settings") % (config.APP_NAME_FIXED_PREFIX + config.APP_NAME_TRANSLATABLE)
+            title = _("%s Settings") % config.APP_NAME
         
         self.YOUTUBE_QUALITY_CHOICES = [_("Best Available"), "1080p", "720p", "480p", "360p", "240p", "144p"]
         self.VERBOSITY_CHOICES = [(config.VERBOSITY_SHORT, _("Short - Concise descriptions")), (config.VERBOSITY_STANDARD, _("Standard - Balanced detail (Default)")), (config.VERBOSITY_DETAILED, _("Detailed - Rich descriptions"))]
@@ -100,6 +100,12 @@ class SettingsDialog(wx.Dialog):
         general_grid_sizer.Add(self.log_level_choice, 1, wx.EXPAND | wx.ALL, 5)
         self.interrupt_speech_checkbox = wx.CheckBox(self.general_panel, label=_("Allow descriptions to interrupt current speech"))
         general_grid_sizer.Add(self.interrupt_speech_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.context_menu_checkbox = wx.CheckBox(self.general_panel, label=_("Add to the Windows &context menu"))
+        general_grid_sizer.Add(self.context_menu_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.check_updates_checkbox = wx.CheckBox(self.general_panel, label=_("Check for updates on startup"))
+        general_grid_sizer.Add(self.check_updates_checkbox, 1, wx.EXPAND | wx.ALL, 5)
+        self.check_updates_button = wx.Button(self.general_panel, label=_("Check for updates &now"))
+        general_grid_sizer.Add(self.check_updates_button, 0, wx.ALL, 5)
         self.general_panel.SetSizer(general_grid_sizer)
         self.notebook.AddPage(self.general_panel, _("General"))
 
@@ -112,12 +118,17 @@ class SettingsDialog(wx.Dialog):
         self.analysis_provider_ids = [item["id"] for item in ANALYSIS_PROVIDERS]
         self.analysis_provider_choice = wx.Choice(self.ai_panel, choices=[analysis_label(item["label"]) for item in ANALYSIS_PROVIDERS])
         ai_grid_sizer.Add(self.analysis_provider_choice, 1, wx.EXPAND|wx.ALL, 5)
-        ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Gemini API Key:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.provider_key_label = wx.StaticText(self.ai_panel, label=_("Gemini API key:"))
+        ai_grid_sizer.Add(self.provider_key_label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.api_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
         ai_grid_sizer.Add(self.api_key_text, 1, wx.EXPAND|wx.ALL, 5)
-        ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("OpenAI API Key (for TTS):")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.clear_key_button = wx.Button(self.ai_panel, label=_("&Erase key"))
+        ai_grid_sizer.Add((0, 0))
+        ai_grid_sizer.Add(self.clear_key_button, 0, wx.ALL, 5)
+        self.openai_key_label = wx.StaticText(self.ai_panel, label=_("OpenAI API Key (for TTS):"))
+        self.openai_key_label.Hide()
         self.openai_api_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
-        ai_grid_sizer.Add(self.openai_api_key_text, 1, wx.EXPAND|wx.ALL, 5)
+        self.openai_api_key_text.Hide()
         ai_grid_sizer.Add(wx.StaticLine(self.ai_panel, style=wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 10); ai_grid_sizer.Add(wx.StaticLine(self.ai_panel, style=wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 10)
         ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Frame Rate for AI Analysis:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.frame_rate_display_choices = [fc[1] for fc in self.FRAME_RATE_CHOICES]; self.frame_rate_internal_values = [fc[0] for fc in self.FRAME_RATE_CHOICES]
@@ -130,6 +141,9 @@ class SettingsDialog(wx.Dialog):
         ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Analysis model:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.analysis_model_choice = wx.Choice(self.ai_panel)
         ai_grid_sizer.Add(self.analysis_model_choice, 1, wx.EXPAND|wx.ALL, 5)
+        self.refresh_analysis_models_button = wx.Button(self.ai_panel, label=_("&Refresh model list"))
+        ai_grid_sizer.Add(self.refresh_analysis_models_button, 0, wx.ALL, 5)
+        ai_grid_sizer.Add((0, 0))
         self.analysis_custom_label = wx.StaticText(self.ai_panel, label=_("Custom model name:"))
         ai_grid_sizer.Add(self.analysis_custom_label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.model_override_text = wx.TextCtrl(self.ai_panel)
@@ -138,6 +152,13 @@ class SettingsDialog(wx.Dialog):
         ai_grid_sizer.Add(self.analysis_key_label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.analysis_key_text = wx.TextCtrl(self.ai_panel, style=wx.TE_PASSWORD)
         ai_grid_sizer.Add(self.analysis_key_text, 1, wx.EXPAND|wx.ALL, 5)
+        self.local_note = wx.StaticText(self.ai_panel, label=_("On this computer, offline. Slower and less detailed than the cloud. Video is a few frames only."))
+        ai_grid_sizer.Add(self.local_note, 0, wx.EXPAND|wx.ALL, 5)
+        ai_grid_sizer.Add((0, 0))
+        self.local_download_button = wx.Button(self.ai_panel, label=_("&Download local model"))
+        ai_grid_sizer.Add(self.local_download_button, 0, wx.ALL, 5)
+        self.local_remove_button = wx.Button(self.ai_panel, label=_("&Remove model"))
+        ai_grid_sizer.Add(self.local_remove_button, 0, wx.ALL, 5)
         ai_grid_sizer.Add(wx.StaticText(self.ai_panel, label=_("Temperature:")), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.temp_text_ctrl = wx.TextCtrl(self.ai_panel, value="0.7")
         ai_grid_sizer.Add(self.temp_text_ctrl, 1, wx.EXPAND|wx.ALL, 5)
@@ -168,6 +189,8 @@ class SettingsDialog(wx.Dialog):
         audio_sizer.Add(self.narration_model_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         self.narration_model_choice = wx.Choice(self.audio_output_panel)
         audio_sizer.Add(self.narration_model_choice, 0, wx.EXPAND | wx.ALL, 5)
+        self.refresh_narration_models_button = wx.Button(self.audio_output_panel, label=_("&Refresh model list"))
+        audio_sizer.Add(self.refresh_narration_models_button, 0, wx.ALL, 5)
         self.narration_voice_label = wx.StaticText(self.audio_output_panel, label=_("Narration voice:"))
         audio_sizer.Add(self.narration_voice_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         self.narration_voice_choice = wx.Choice(self.audio_output_panel)
@@ -176,6 +199,8 @@ class SettingsDialog(wx.Dialog):
         audio_sizer.Add(self.narration_key_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         self.narration_key_text = wx.TextCtrl(self.audio_output_panel, style=wx.TE_PASSWORD)
         audio_sizer.Add(self.narration_key_text, 0, wx.EXPAND | wx.ALL, 5)
+        self.erase_narration_key_button = wx.Button(self.audio_output_panel, label=_("&Erase key"))
+        audio_sizer.Add(self.erase_narration_key_button, 0, wx.ALL, 5)
         self.refresh_voices_button = wx.Button(self.audio_output_panel, label=_("&Refresh voice list"))
         audio_sizer.Add(self.refresh_voices_button, 0, wx.ALL, 5)
         self.azure_region_label = wx.StaticText(self.audio_output_panel, label=_("Azure region (for example brazilsouth):"))
@@ -223,9 +248,14 @@ class SettingsDialog(wx.Dialog):
         test_sizer.Add(self.test_voice_button, 0, wx.ALIGN_CENTER|wx.ALL, 5)
         audio_sizer.Add(test_sizer, 0, wx.EXPAND|wx.ALL, 5)
         
-        audio_sizer.Add(wx.StaticText(self.audio_output_panel, label=_("Original Audio Ducking (-dB, for MP3):")), 0, wx.ALL, 5)
+        self.ducking_checkbox = wx.CheckBox(self.audio_output_panel, label=_("&Duck original audio under the narration"))
+        audio_sizer.Add(self.ducking_checkbox, 0, wx.ALL, 5)
+        self.ducking_label = wx.StaticText(self.audio_output_panel, label=_("Ducking level (-dB):"))
+        audio_sizer.Add(self.ducking_label, 0, wx.ALL, 5)
         self.ducking_spin = wx.SpinCtrl(self.audio_output_panel, value="-15", min=-60, max=0)
         audio_sizer.Add(self.ducking_spin, 0, wx.EXPAND|wx.ALL, 5)
+        self.keep_original_checkbox = wx.CheckBox(self.audio_output_panel, label=_("&Keep the original audio as a second track"))
+        audio_sizer.Add(self.keep_original_checkbox, 0, wx.ALL, 5)
         self.audio_output_panel.SetSizer(audio_sizer)
         self.notebook.AddPage(self.audio_output_panel, _("Audio Output"))
 
@@ -251,11 +281,16 @@ class SettingsDialog(wx.Dialog):
         self.log_level_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.interrupt_speech_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
         self.api_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
-        self.openai_api_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
+        self.clear_key_button.Bind(wx.EVT_BUTTON, self.OnEraseKey)
         self.frame_rate_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.verbosity_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.model_override_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.analysis_provider_choice.Bind(wx.EVT_CHOICE, self.OnAnalysisProviderChanged)
+        self.local_download_button.Bind(wx.EVT_BUTTON, self.OnDownloadLocal)
+        self.local_remove_button.Bind(wx.EVT_BUTTON, self.OnRemoveLocal)
+        self.context_menu_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.check_updates_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.check_updates_button.Bind(wx.EVT_BUTTON, self.OnCheckUpdates)
         self.analysis_model_choice.Bind(wx.EVT_CHOICE, self.OnAnalysisModelChanged)
         self.analysis_key_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.temp_text_ctrl.Bind(wx.EVT_TEXT, self.OnSettingChanged)
@@ -273,12 +308,17 @@ class SettingsDialog(wx.Dialog):
         self.azure_region_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.piper_exe_text.Bind(wx.EVT_TEXT, self.OnSettingChanged)
         self.refresh_voices_button.Bind(wx.EVT_BUTTON, self.OnRefreshVoices)
+        self.refresh_analysis_models_button.Bind(wx.EVT_BUTTON, self.OnRefreshAnalysisModels)
+        self.refresh_narration_models_button.Bind(wx.EVT_BUTTON, self.OnRefreshNarrationModels)
+        self.erase_narration_key_button.Bind(wx.EVT_BUTTON, self.OnEraseNarrationKey)
         self.tts_engine_choice.Hide()
         self.openai_voice_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.manage_voices_button.Bind(wx.EVT_BUTTON, self.OnManageVoices)
         self.sapi_voice_choice.Bind(wx.EVT_CHOICE, self.OnSettingChanged)
         self.sapi_rate_slider.Bind(wx.EVT_SLIDER, self.OnSettingChanged)
         self.ducking_spin.Bind(wx.EVT_SPINCTRL, self.OnSettingChanged)
+        self.ducking_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
+        self.keep_original_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSettingChanged)
 
     def OnTestVoice(self, event):
         text = self.test_text_ctrl.GetValue()
@@ -289,7 +329,7 @@ class SettingsDialog(wx.Dialog):
         engine_choice = self.TTS_ENGINE_CHOICES[self.tts_engine_choice.GetSelection()][0]
         
         settings = {
-            "openai_api_key": self.openai_api_key_text.GetValue().strip(),
+            "openai_api_key": (getattr(self, "_key_cache", {}) or {}).get("openai", ""),
             "openai_voice_preset": self.openai_voice_choice.GetStringSelection(),
             "openai_tts_model": config_model.get_setting("openai_tts_model"),
             "sapi5_voice_id": self.sapi_voices[self.sapi_voice_choice.GetSelection()]['id'] if self.sapi_voices and self.sapi_voice_choice.GetSelection() != wx.NOT_FOUND else None,
@@ -346,13 +386,14 @@ class SettingsDialog(wx.Dialog):
             self.sapi_sizer.GetStaticBox().SetLabel(box_label)
             
             self.sapi_voice_choice.Clear()
+            self.sapi_voice_choice.Enable()
+            self.sapi_voice_choice.Show()
             if self.sapi_voices:
-                self.sapi_voice_choice.Enable()
                 for voice in self.sapi_voices:
                     self.sapi_voice_choice.Append(voice['name'])
             else:
-                self.sapi_voice_choice.Append(_("(No voices found)"))
-                self.sapi_voice_choice.Disable()
+                self.sapi_voice_choice.Append(_("Could not list the voices."))
+                app_logger.error("SAPI voice list is empty for engine %s.", selected_engine)
             self.sapi_voice_choice.SetSelection(0)
 
         self.audio_output_panel.Layout()
@@ -389,8 +430,7 @@ class SettingsDialog(wx.Dialog):
         self.log_level_choice.SetSelection(self.log_level_internal_values.index(self.current_settings.get("logging_level", "INFO")))
         self.interrupt_speech_checkbox.SetValue(self.current_settings.get("player_allow_speech_interruption", True))
         
-        self.api_key_text.SetValue(self.current_settings.get("user_gemini_api_key", ""))
-        self.openai_api_key_text.SetValue(self.current_settings.get("user_openai_api_key", ""))
+        self._load_provider_keys()
         self.frame_rate_choice.SetSelection(self.frame_rate_internal_values.index(self.current_settings.get("frame_rate_for_ai", 0)))
         self.verbosity_choice.SetSelection(self.verbosity_internal_values.index(self.current_settings.get("gemini_description_verbosity", config.DEFAULT_VERBOSITY)))
         self._load_analysis_controls()
@@ -433,7 +473,13 @@ class SettingsDialog(wx.Dialog):
             self.sapi_rate_slider.SetValue(self.current_settings.get("onecore_voice_rate_percent", 100))
         else:
             self.sapi_rate_slider.SetValue(self.current_settings.get("sapi5_voice_rate_percent", 100))
+        self.ducking_checkbox.SetValue(bool(self.current_settings.get("audio_ducking_enabled", True)))
         self.ducking_spin.SetValue(self.current_settings.get("mp3_audio_ducking_level_db", -15))
+        self.keep_original_checkbox.SetValue(bool(self.current_settings.get("export_keep_original_audio", False)))
+        self._sync_ducking_level_visibility()
+        from ..utils.shell_menu import is_registered
+        self.context_menu_checkbox.SetValue(is_registered())
+        self.check_updates_checkbox.SetValue(bool(self.current_settings.get("check_updates_on_startup", True)))
         
         self.settings_changed = False
         self.apply_button.Disable()
@@ -444,10 +490,33 @@ class SettingsDialog(wx.Dialog):
             return False
         return self._analysis_model_ids[selection] == self._analysis_custom_id
 
+    def _layout_keeping_focus(self, panel):
+        focused = self.FindFocus()
+        panel.Layout()
+        self.Layout()
+        if focused is not None and focused.IsShown():
+            focused.SetFocus()
+
     def _fill_analysis_models(self, provider_id, selected_id=""):
         from ..core.analysis_providers import FALLBACK_MODELS
-        models = [(model_id, model_id) for model_id in FALLBACK_MODELS.get(provider_id, ())]
-        models.append((self._analysis_custom_id, _("Custom model name")))
+        from ..core.local_model import LOCAL_MODELS
+        from ..core.model_refresh import ids_to_show
+        from ..models import config_model
+        if provider_id == "local":
+            labels = {
+                "qwen25vl-3b": _("Qwen2.5-VL 3B, about 3 GB, 8 GB of RAM"),
+                "qwen25vl-7b": _("Qwen2.5-VL 7B, about 6 GB, 16 GB of RAM"),
+                "gemma3-4b": _("Gemma 3 4B, about 3.3 GB, 8 GB of RAM"),
+                "gemma3-12b": _("Gemma 3 12B, about 8.2 GB, 16 GB of RAM"),
+            }
+            builtin = [item["id"] for item in LOCAL_MODELS]
+            shown = ids_to_show((config_model.get_setting("cached_analysis_models") or {}).get(provider_id), builtin)
+            models = [(model_id, labels.get(model_id, model_id)) for model_id in shown]
+        else:
+            builtin = list(FALLBACK_MODELS.get(provider_id, ()))
+            shown = ids_to_show((config_model.get_setting("cached_analysis_models") or {}).get(provider_id), builtin)
+            models = [(model_id, model_id) for model_id in shown]
+            models.append((self._analysis_custom_id, _("Custom model name")))
         self._analysis_model_ids = [item[0] for item in models]
         self.analysis_model_choice.Clear()
         for _model_id, label in models:
@@ -461,12 +530,24 @@ class SettingsDialog(wx.Dialog):
     def _show_analysis_extras(self):
         provider_id = self.analysis_provider_ids[max(0, self.analysis_provider_choice.GetSelection())]
         custom = self._analysis_selection_is_custom()
-        needs_own_key = provider_id not in ("gemini", "openai")
-        self.analysis_custom_label.Show(custom)
-        self.model_override_text.Show(custom)
-        self.analysis_key_label.Show(needs_own_key)
-        self.analysis_key_text.Show(needs_own_key)
-        self.ai_panel.Layout()
+        local = provider_id == "local"
+        self.analysis_custom_label.Show(custom and not local)
+        self.model_override_text.Show(custom and not local)
+        self.analysis_key_label.Hide()
+        self.analysis_key_text.Hide()
+        show_key = not local
+        self.provider_key_label.Show(show_key)
+        self.api_key_text.Show(show_key)
+        self.clear_key_button.Show(show_key)
+        self.local_note.Show(local)
+        installed = False
+        if local:
+            from ..core.local_model import is_installed
+            model_id = self._analysis_model_ids[max(0, self.analysis_model_choice.GetSelection())]
+            installed = is_installed(model_id)
+        self.local_download_button.Show(local and not installed)
+        self.local_remove_button.Show(local and installed)
+        self._layout_keeping_focus(self.ai_panel)
 
     def _load_analysis_controls(self):
         provider_id = self.current_settings.get("analysis_provider") or "gemini"
@@ -479,29 +560,79 @@ class SettingsDialog(wx.Dialog):
         if not selected and self.current_settings.get("gemini_model_override"):
             selected = self._analysis_custom_id
         self._fill_analysis_models(provider_id, selected)
-        keys = self.current_settings.get("analysis_api_keys") or {}
-        self.analysis_key_text.SetValue(keys.get(provider_id, "") if isinstance(keys, dict) else "")
+        self._shown_provider = provider_id
+        self._show_provider_key(provider_id)
+
+    def _load_provider_keys(self):
+        from ..core.analysis_settings import provider_ids, read_key
+        self._key_cache = {provider_id: read_key(self.current_settings, provider_id) for provider_id in provider_ids()}
+
+    def _provider_key_label(self, provider_id):
+        labels = {
+            "gemini": _("Gemini API key:"),
+            "openai": _("OpenAI API key:"),
+            "xai": _("xAI API key:"),
+            "anthropic": _("Anthropic API key:"),
+            "qwen": _("Qwen API key:"),
+            "openrouter": _("OpenRouter API key:"),
+        }
+        return labels.get(provider_id, _("API key:"))
+
+    def _show_provider_key(self, provider_id):
+        self.provider_key_label.SetLabel(self._provider_key_label(provider_id))
+        self.api_key_text.ChangeValue(self._key_cache.get(provider_id, ""))
+
+    def _remember_provider_key(self):
+        provider_id = getattr(self, "_shown_provider", None)
+        if not provider_id or not hasattr(self, "_key_cache"):
+            return
+        self._key_cache[provider_id] = self.api_key_text.GetValue().strip()
 
     def _save_analysis_controls(self):
+        from ..core.analysis_settings import write_key
+        self._remember_provider_key()
         provider_id = self.analysis_provider_ids[self.analysis_provider_choice.GetSelection()]
         self.current_settings["analysis_provider"] = provider_id
         model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
         self.current_settings["analysis_model"] = model_id
         self.current_settings["analysis_model_custom"] = self.model_override_text.GetValue().strip()
-        keys = dict(self.current_settings.get("analysis_api_keys") or {})
-        keys[provider_id] = self.analysis_key_text.GetValue().strip()
-        self.current_settings["analysis_api_keys"] = keys
+        for saved_id, value in self._key_cache.items():
+            write_key(self.current_settings, saved_id, value)
+
+    def OnEraseKey(self, event):
+        from .accessibility_utils import speak_message
+        provider_id = getattr(self, "_shown_provider", None)
+        self.api_key_text.ChangeValue("")
+        if provider_id and hasattr(self, "_key_cache"):
+            self._key_cache[provider_id] = ""
+        self.OnSettingChanged(event)
+        self.api_key_text.SetFocus()
+        speak_message(_("Key erased."))
 
     def OnAnalysisProviderChanged(self, event):
+        self._remember_provider_key()
         provider_id = self.analysis_provider_ids[self.analysis_provider_choice.GetSelection()]
+        self._shown_provider = provider_id
+        self._show_provider_key(provider_id)
         self._fill_analysis_models(provider_id)
-        self.analysis_model_choice.SetFocus()
         self.OnSettingChanged(event)
+
+    def OnDownloadLocal(self, event):
+        from .model_download_dialog import download_local_model
+        model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
+        if download_local_model(self, model_id):
+            self._show_analysis_extras()
+        event.Skip()
+
+    def OnRemoveLocal(self, event):
+        from ..core.local_model import remove_model
+        model_id = self._analysis_model_ids[self.analysis_model_choice.GetSelection()]
+        remove_model(model_id)
+        self._show_analysis_extras()
+        event.Skip()
 
     def OnAnalysisModelChanged(self, event):
         self._show_analysis_extras()
-        if self._analysis_selection_is_custom():
-            self.model_override_text.SetFocus()
         self.OnSettingChanged(event)
 
     def _narration_provider_id(self):
@@ -512,7 +643,15 @@ class SettingsDialog(wx.Dialog):
 
     def _fill_narration_models(self, provider_id, selected=""):
         from ..core.narration_requests import models_for
-        models = models_for(provider_id)
+        from ..core.model_refresh import ids_to_show
+        from ..models import config_model
+        builtin = models_for(provider_id)
+        cached = (config_model.get_setting("cached_narration_models") or {}).get(provider_id)
+        if cached:
+            labels = {item[0]: item[1] for item in builtin}
+            models = [(model_id, labels.get(model_id, model_id)) for model_id in ids_to_show(cached, [item[0] for item in builtin])]
+        else:
+            models = builtin
         self._narration_model_ids = [item[0] for item in models]
         self.narration_model_choice.Clear()
         from ..core.narration_requests import ui_label as narration_label
@@ -564,6 +703,7 @@ class SettingsDialog(wx.Dialog):
         self.piper_exe_label.Show(is_piper)
         self.piper_exe_text.Show(is_piper)
         self.refresh_voices_button.Show(not is_windows and not is_piper)
+        self.erase_narration_key_button.Show(needs_key)
         self.tts_engine_choice.Hide()
         if is_windows:
             engine = {"onecore": "onecore", "sapi4": "sapi5_32bit"}.get(model, "sapi5")
@@ -575,7 +715,7 @@ class SettingsDialog(wx.Dialog):
         else:
             self.openai_settings_panel.Hide()
             self.sapi5_settings_panel.Hide()
-        self.audio_output_panel.Layout()
+        self._layout_keeping_focus(self.audio_output_panel)
 
     def _load_narration_controls(self):
         provider_id = self.current_settings.get("narration_provider") or "windows"
@@ -617,49 +757,174 @@ class SettingsDialog(wx.Dialog):
                 self.current_settings["openai_tts_voice"] = self.current_settings["narration_voice"]
             self.current_settings["openai_tts_model"] = model
 
-    def OnRefreshVoices(self, event):
-        from ..core.narration_engine import NarrationError, fetch_remote_voices
+    def _narration_key_for_refresh(self):
         provider_id = self._narration_provider_id()
-        self._save_narration_controls()
-        key = self.narration_key_text.GetValue().strip()
-        if provider_id == "gemini":
-            key = self.api_key_text.GetValue().strip()
-        elif provider_id == "openai":
-            key = self.openai_api_key_text.GetValue().strip()
-        model = self._narration_model_ids[max(0, self.narration_model_choice.GetSelection())]
-        try:
-            voices = fetch_remote_voices(provider_id, key, model, self.azure_region_text.GetValue().strip())
-        except (NarrationError, ValueError, OSError) as exc:
-            wx.MessageBox(str(exc), _("Error"), wx.OK | wx.ICON_ERROR, self)
-            return
-        if not voices:
-            wx.MessageBox(_("(No voices found)"), _("Info"), wx.OK | wx.ICON_INFORMATION, self)
-            return
-        self._narration_voice_ids = [item["id"] for item in voices]
-        self.narration_voice_choice.Clear()
-        for item in voices:
-            self.narration_voice_choice.Append(item["name"])
-        self.narration_voice_choice.SetSelection(0)
-        self.narration_voice_choice.SetFocus()
+        if provider_id in ("gemini", "openai"):
+            self._remember_provider_key()
+            return (self._key_cache or {}).get(provider_id, "")
+        return self.narration_key_text.GetValue().strip()
+
+    def _run_refresh(self, button, start_message, work, apply_result):
         from .accessibility_utils import speak_message
-        speak_message(_("%d voices.") % len(voices))
+        from ..core.model_refresh import MissingKey, call_with_timeout
+        if getattr(self, "_refresh_busy", False):
+            return
+        self._refresh_busy = True
+        button.Disable()
+        speak_message(start_message)
+
+        def worker():
+            try:
+                result = call_with_timeout(work, timeout=25)
+                error = None
+            except Exception as exc:
+                result = None
+                error = exc
+            wx.CallAfter(self._refresh_done, button, result, error, apply_result)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _refresh_done(self, button, result, error, apply_result):
+        from .accessibility_utils import speak_message
+        from ..core.model_refresh import MissingKey
+        self._refresh_busy = False
+        button.Enable()
+        if button.IsShown():
+            button.SetFocus()
+        if isinstance(error, MissingKey):
+            speak_message(_("The AI key is missing."))
+            return
+        if error is not None:
+            from ..utils.logger import app_logger
+            app_logger.error("Refresh failed: %s", error)
+            speak_message(_("Could not update the list."))
+            return
+        apply_result(result)
+
+    def OnRefreshVoices(self, event):
+        from ..core.narration_engine import fetch_remote_voices
+        from ..core.model_refresh import MissingKey
+        provider_id = self._narration_provider_id()
+        key = self._narration_key_for_refresh()
+        if provider_id not in ("windows", "piper") and not key:
+            from .accessibility_utils import speak_message
+            speak_message(_("The AI key is missing."))
+            return
+        model = self._narration_model_ids[max(0, self.narration_model_choice.GetSelection())]
+        region = self.azure_region_text.GetValue().strip()
+
+        def work():
+            if not key and provider_id not in ("windows", "piper"):
+                raise MissingKey()
+            return fetch_remote_voices(provider_id, key, model, region)
+
+        def apply_result(voices):
+            from .accessibility_utils import speak_message
+            from ..core.model_refresh import fill_choice_in_place
+            voices = voices or []
+            keep = ""
+            if self._narration_voice_ids and self.narration_voice_choice.GetSelection() != wx.NOT_FOUND:
+                index = self.narration_voice_choice.GetSelection()
+                if index < len(self._narration_voice_ids):
+                    keep = self._narration_voice_ids[index]
+            self._narration_voice_ids = [item["id"] for item in voices] or [""]
+            labels = [item["name"] for item in voices] or [_("(No voices found)")]
+            fill_choice_in_place(self.narration_voice_choice, labels, self._narration_voice_ids, keep)
+            speak_message(_("%d voices.") % len(voices))
+
+        self._run_refresh(self.refresh_voices_button, _("Updating voices..."), work, apply_result)
+
+    def OnEraseNarrationKey(self, event):
+        from .accessibility_utils import speak_message
+        self.narration_key_text.ChangeValue("")
+        self.OnSettingChanged(event)
+        self.narration_key_text.SetFocus()
+        speak_message(_("Key erased."))
 
     def OnNarrationProviderChanged(self, event):
-        self._fill_narration_models(self._narration_provider_id())
-        keys = self.current_settings.get("narration_api_keys") or {}
         provider_id = self._narration_provider_id()
-        self.narration_key_text.SetValue(keys.get(provider_id, "") if isinstance(keys, dict) else "")
+        previous = self.current_settings.get("narration_model") or ""
+        self._fill_narration_models(provider_id, previous)
+        keys = self.current_settings.get("narration_api_keys") or {}
+        self.narration_key_text.ChangeValue(keys.get(provider_id, "") if isinstance(keys, dict) else "")
         self._show_narration_fields()
-        self.narration_model_choice.SetFocus()
         self.OnSettingChanged(event)
 
     def OnNarrationModelChanged(self, event):
         self._fill_narration_voices()
         self._show_narration_fields()
-        target = self.sapi_voice_choice if self._narration_provider_id() == "windows" else self.narration_voice_choice
-        if target.IsShown():
-            target.SetFocus()
         self.OnSettingChanged(event)
+
+    def OnRefreshAnalysisModels(self, event):
+        self._refresh_model_list(self.refresh_analysis_models_button, "analysis")
+
+    def OnRefreshNarrationModels(self, event):
+        self._refresh_model_list(self.refresh_narration_models_button, "narration")
+
+    def _refresh_model_list(self, button, kind):
+        from ..core.model_refresh import MissingKey, analysis_list_request, choose_ids, fetch_ids, narration_list_request
+        from ..core.analysis_providers import FALLBACK_MODELS
+        from ..core.local_model import LOCAL_MODELS
+        from ..core.narration_requests import models_for
+        if kind == "analysis":
+            provider_id = self.analysis_provider_ids[max(0, self.analysis_provider_choice.GetSelection())]
+            self._remember_provider_key()
+            key = (self._key_cache or {}).get(provider_id, "")
+            builtin = [item["id"] for item in LOCAL_MODELS] if provider_id == "local" else list(FALLBACK_MODELS.get(provider_id, ()))
+            request_builder = analysis_list_request
+            cache_name = "cached_analysis_models"
+            vision = True
+        else:
+            provider_id = self._narration_provider_id()
+            key = self._narration_key_for_refresh()
+            builtin = [item[0] for item in models_for(provider_id)]
+            request_builder = narration_list_request
+            cache_name = "cached_narration_models"
+            vision = False
+        if provider_id != "local" and provider_id not in ("windows", "piper") and not key and request_builder(provider_id, "x"):
+            from .accessibility_utils import speak_message
+            speak_message(_("The AI key is missing."))
+            return
+
+        def work():
+            if provider_id in ("local", "windows", "piper"):
+                return list(builtin)
+            if not key:
+                raise MissingKey()
+            request = request_builder(provider_id, key)
+            if request is None:
+                return list(builtin)
+            payload = fetch_ids(request)
+            from ..core.model_refresh import _ids_from_payload
+            raw = _ids_from_payload(provider_id, payload)
+            return choose_ids(provider_id, raw, builtin, vision=vision)
+
+        def apply_result(ids):
+            from .accessibility_utils import speak_message
+            from ..models import config_model
+            cache = dict(self.current_settings.get(cache_name) or {})
+            cache[provider_id] = list(ids)
+            self.current_settings[cache_name] = cache
+            config_model.app_settings[cache_name] = cache
+            config_model.save_settings(config_model.app_settings)
+            if kind == "analysis":
+                selected = self._analysis_model_ids[max(0, self.analysis_model_choice.GetSelection())] if self._analysis_model_ids else ""
+                self._fill_analysis_models(provider_id, selected)
+            else:
+                selected = self._narration_model_ids[max(0, self.narration_model_choice.GetSelection())] if self._narration_model_ids else ""
+                self._fill_narration_models(provider_id, selected)
+            speak_message(_("%d models found.") % len(ids))
+
+        self._run_refresh(button, _("Updating models..."), work, apply_result)
+
+    def OnCheckUpdates(self, event):
+        from ..utils import update_checker
+        from .accessibility_utils import speak_message
+        speak_message(_("Checking for updates."))
+        update_checker.start_check(self, self._settings_language(), _, announce=True)
+
+    def _settings_language(self):
+        return self.current_settings.get("application_language") or "pt_BR"
 
     def ApplySettings(self):
         self.current_settings["youtube_download_quality"] = self.yt_quality_choice.GetStringSelection()
@@ -667,8 +932,6 @@ class SettingsDialog(wx.Dialog):
         self.current_settings["logging_level"] = self.log_level_internal_values[self.log_level_choice.GetSelection()]
         self.current_settings["player_allow_speech_interruption"] = self.interrupt_speech_checkbox.IsChecked()
         
-        self.current_settings["user_gemini_api_key"] = self.api_key_text.GetValue().strip()
-        self.current_settings["user_openai_api_key"] = self.openai_api_key_text.GetValue().strip()
         self.current_settings["frame_rate_for_ai"] = self.frame_rate_internal_values[self.frame_rate_choice.GetSelection()]
         self.current_settings["gemini_description_verbosity"] = self.verbosity_internal_values[self.verbosity_choice.GetSelection()]
         self._save_analysis_controls()
@@ -680,6 +943,10 @@ class SettingsDialog(wx.Dialog):
         self.current_settings["enable_video_chunking"] = self.enable_chunking_checkbox.IsChecked()
         self.current_settings["video_chunk_duration_seconds"] = self.chunk_duration_spin.GetValue()
         self.current_settings["enable_character_glossary"] = self.enable_character_glossary_checkbox.IsChecked()
+        self.current_settings["context_menu_enabled"] = self.context_menu_checkbox.IsChecked()
+        self.current_settings["check_updates_on_startup"] = self.check_updates_checkbox.IsChecked()
+        from ..utils.shell_menu import apply_shell_menu
+        apply_shell_menu(self.context_menu_checkbox.IsChecked())
         
         self._save_narration_controls()
         if self._narration_provider_id() != "openai":
@@ -708,7 +975,9 @@ class SettingsDialog(wx.Dialog):
             self.current_settings["onecore_voice_id"] = None
             self.current_settings["onecore_voice_rate_percent"] = 100
 
+        self.current_settings["audio_ducking_enabled"] = self.ducking_checkbox.IsChecked()
         self.current_settings["mp3_audio_ducking_level_db"] = self.ducking_spin.GetValue()
+        self.current_settings["export_keep_original_audio"] = self.keep_original_checkbox.IsChecked()
         
         config_model.app_settings.update(self.current_settings)
         if config_model.save_settings(config_model.app_settings):
@@ -721,11 +990,18 @@ class SettingsDialog(wx.Dialog):
             wx.MessageBox(_("Could not save settings."), _("Error"), wx.OK | wx.ICON_ERROR, self)
             return False
 
+    def _sync_ducking_level_visibility(self):
+        show = self.ducking_checkbox.IsChecked()
+        self.ducking_label.Show(show)
+        self.ducking_spin.Show(show)
+        self.audio_output_panel.Layout()
+
     def OnSettingChanged(self, event):
         is_chunking = self.enable_chunking_checkbox.IsChecked()
         self.chunk_duration_label.Enable(is_chunking)
         self.chunk_duration_spin.Enable(is_chunking)
         self.ai_panel.Layout()
+        self._sync_ducking_level_visibility()
         
         self.settings_changed = True
         self.apply_button.Enable()

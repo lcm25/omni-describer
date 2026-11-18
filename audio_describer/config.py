@@ -1,6 +1,7 @@
 # Application Details
 import sys
 import os
+from .version import APP_VERSION, UPDATE_REPO
 
 # --- Base Path Calculation ---
 # This is the definitive, most robust method for finding data files.
@@ -57,16 +58,33 @@ APP_NAME_TRANSLATABLE = APP_NAME_BASE_UNTRANSLATED
 # Include a space if you want one between the prefix and the translatable name.
 APP_NAME_FIXED_PREFIX = "Omni " 
 
-APP_VERSION = "2.1.0"
+# User-facing name. Titles, About, help, the exe and the installer follow this.
+APP_NAME = "Descritudo"
+# Exe file name without extension. "Descritudo" -> Descritudo.exe
+APP_EXE_BASENAME = APP_NAME
+
+def app_file_slug(name=None):
+    """Lowercase filesystem slug. Kept for older call sites."""
+    raw = APP_EXE_BASENAME if name is None else name
+    slug = "".join(ch.lower() if ch.isalnum() else "_" for ch in raw)
+    while "__" in slug:
+        slug = slug.replace("__", "_")
+    return slug.strip("_") or "app"
+
+# APP_VERSION and UPDATE_REPO live in version.py.
+
+# New installs use this folder. Legacy folders are copied in on first run.
+APP_DATA_DIR_NAME = APP_NAME
+LEGACY_DATA_DIR_NAMES = ("Describer", "describer", "Omni Describer", "Omni Descritor")
+
+def portable_marker_name():
+    return "portable.txt"
 
 # --- Auto-update (GitHub Releases) ---
-# The updater reads the latest GitHub release and pulls its assets. The release
-# workflow publishes assets under fixed names (omni_describer.zip, updater.exe),
-# so these /latest/download/ URLs stay valid across every version.
-GITHUB_REPO = "audioses/omni-describer"
+# This fork. A build must not download the upstream audioses packages.
+GITHUB_REPO = UPDATE_REPO
 VERSION_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/omni_describer.zip"
-UPDATER_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/updater.exe"
+DOWNLOAD_URL = f"https://github.com/{GITHUB_REPO}/releases/latest/download/{APP_NAME}-portable.zip"
 WEBSITE_URL = "https://audioses.com/"
 WEBAPP_URL = "https://studio.binclusive.io"
 CONTACT_EMAIL = "info@audioses.com"

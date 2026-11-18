@@ -1,3 +1,5 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Omni Betimleyici'yi kullandığınız için teşekkür ederim! Bu yazılımı kullanarak aşağıdaki basit koşulları kabul etmiş olursunuz:
 
 1. Sorumlu Kullanın

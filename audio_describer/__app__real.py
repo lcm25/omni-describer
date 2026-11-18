@@ -3,17 +3,31 @@ import wx
 import sys
 import os
 import time
-import threading # Import threading for the background check
-
 # --- Top-level imports should be minimal ---
 import audio_describer.i18n_setup 
 from audio_describer.utils.logger import app_logger
 from audio_describer.utils import sound_player
 from audio_describer import app_state
 
+def _quiet_asserts():
+    """A frozen Windows build must not abort on a wx C++ assertion."""
+    if not getattr(sys, "frozen", False) and "--smoke-test" not in sys.argv:
+        return
+    try:
+        wx.DisableAsserts()
+    except Exception:
+        pass
+    try:
+        wx.App.SetAssertMode(wx.APP_ASSERT_LOG)
+    except Exception:
+        pass
+
+
 class AudioDescriberApp(wx.App):
     def OnInit(self):
         self.is_updating = False
+        self._smoke_ok = False
+        _quiet_asserts()
         
         self.lang_code = audio_describer.i18n_setup.initialize_translations()
         
@@ -48,6 +62,8 @@ class AudioDescriberApp(wx.App):
             license_accepted = False
             app_logger.error("Failed to check license acceptance status.")
         
+        if "--smoke-test" in sys.argv:
+            license_accepted = True
         if not license_accepted:
             license_dlg = LicenseDialog(None)
             result = license_dlg.ShowModal()
@@ -64,13 +80,32 @@ class AudioDescriberApp(wx.App):
         from audio_describer.ui.main_window import MainWindow 
         import audio_describer.config as app_config
         from audio_describer.ui.accessibility_utils import speak_message, ACCESSIBLE_OUTPUT_AVAILABLE
+        from audio_describer.utils import single_instance
+
+        launch_paths = [arg for arg in sys.argv[1:] if not str(arg).startswith("-") and os.path.isfile(arg)]
+        if single_instance.forward(launch_paths):
+            return False
+        self._remote_paths = []
+
+        def _on_remote(paths):
+            def deliver():
+                frame = getattr(self, "main_frame", None)
+                if frame:
+                    if paths:
+                        frame.open_paths(paths)
+                    else:
+                        frame.Raise()
+                else:
+                    self._remote_paths.extend(paths)
+            wx.CallAfter(deliver)
+
+        single_instance.listen(_on_remote)
         
         app_logger.info("Core components loaded. Initializing main window.")
 
         # --- The update checker call is now moved from here ---
         
-        translatable_part = _(app_config.APP_NAME_TRANSLATABLE)
-        full_app_display_name = app_config.APP_NAME_FIXED_PREFIX + translatable_part
+        full_app_display_name = app_config.APP_NAME
 
         app_logger.info(_("Starting %(app_name)s v%(app_version)s") % {
             "app_name": full_app_display_name, 
@@ -82,9 +117,23 @@ class AudioDescriberApp(wx.App):
         
         window_title = full_app_display_name + f" - v{app_config.APP_VERSION}" 
 
-        self.main_frame = MainWindow(None, title=window_title)
-        self.SetTopWindow(self.main_frame)
-        self.main_frame.Show(True)
+        try:
+            self.main_frame = MainWindow(None, title=window_title)
+            self.SetTopWindow(self.main_frame)
+            self.main_frame.Show(True)
+        except Exception as exc:
+            app_logger.critical("Main window failed to open.", exc_info=True)
+            if "--smoke-test" not in sys.argv:
+                from audio_describer.utils.logger import get_log_file_path
+                wx.MessageBox(
+                    _("Descritudo could not open.\n\n%s\n\nThe log is at:\n%s") % (exc, get_log_file_path()),
+                    app_config.APP_NAME,
+                    wx.OK | wx.ICON_ERROR,
+                )
+            return False
+        queued = list(launch_paths) + list(self._remote_paths)
+        if queued and "--smoke-test" not in sys.argv:
+            wx.CallAfter(self.main_frame.open_paths, queued)
 
         # Show settings migration warning if there was an issue
         load_warning = config_model.get_load_warning()
@@ -97,11 +146,13 @@ class AudioDescriberApp(wx.App):
                 self.main_frame
             )
 
-        # Show one-time webapp migration banner
-        self._show_webapp_banner_if_needed(config_model)
+        # The web platform stays in the File menu. No modal before the first action.
 
         # MODIFICATION: Start the update check in the background AFTER the UI is shown.
-        self.StartBackgroundUpdateCheck()
+        if "--smoke-test" in sys.argv:
+            wx.CallAfter(self._finish_smoke)
+        else:
+            self.StartBackgroundUpdateCheck()
 
         sound_player.play("start.mp3")
 
@@ -156,24 +207,28 @@ class AudioDescriberApp(wx.App):
         Launches the update check in a separate thread to avoid blocking the UI.
         """
         from audio_describer.utils import update_checker
-        import audio_describer.config as app_config
         _ = audio_describer.i18n_setup._
-        
-        thread = threading.Thread(
-            target=update_checker.check_for_updates,
-            args=(
-                self.main_frame, # Pass the main window reference
-                app_config.APP_VERSION,
-                app_config.VERSION_URL,
-                app_config.DOWNLOAD_URL,
-                self.lang_code,
-                _,
-            ),
-            daemon=True # Daemon threads exit when the main app exits
-        )
-        thread.start()
+        update_checker.start_check(self.main_frame, self.lang_code, _)
+
+    def _finish_smoke(self):
+        app_logger.info("main window shown")
+        marker = os.environ.get("OMNI_SMOKE_FILE")
+        if marker:
+            try:
+                with open(marker, "w", encoding="utf-8") as handle:
+                    handle.write("main window shown\n")
+            except OSError as exc:
+                app_logger.error("Could not write smoke marker: %s", exc)
+                self._smoke_ok = False
+                self.ExitMainLoop()
+                return
+        self._smoke_ok = True
+        self.ExitMainLoop()
 
     def OnExit(self):
+        if "--smoke-test" in sys.argv:
+            app_state.shutdown_event.set()
+            return super().OnExit()
         if getattr(self, 'is_updating', False):
             app_logger.info("Performing fast exit for update process. No sounds or delays.")
             app_state.shutdown_event.set()
@@ -185,9 +240,8 @@ class AudioDescriberApp(wx.App):
         _ = audio_describer.i18n_setup._
         import audio_describer.config as app_config
         
-        translatable_part = _(app_config.APP_NAME_TRANSLATABLE)
-        full_app_display_name = app_config.APP_NAME_FIXED_PREFIX + translatable_part
-        
+        full_app_display_name = app_config.APP_NAME
+
         app_logger.info(_("%s is shutting down.") % full_app_display_name)
         
         from audio_describer.ui.accessibility_utils import speak_message
@@ -201,8 +255,11 @@ class AudioDescriberApp(wx.App):
         return super().OnExit()
 
 def main():
+    _quiet_asserts()
     app = AudioDescriberApp(redirect=False)
     app.MainLoop()
+    if "--smoke-test" in sys.argv and not getattr(app, "_smoke_ok", False):
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

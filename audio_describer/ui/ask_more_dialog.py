@@ -70,7 +70,7 @@ class AskMoreDialog(wx.Dialog):
         button_sizer.Add(self.submit_button, 0, wx.ALL, 5)
 
         self.add_to_main_button = wx.Button(self, label=_("&Add to Descriptions"))
-        self.add_to_main_button.Disable()
+        self.add_to_main_button.Hide()
         button_sizer.Add(self.add_to_main_button, 0, wx.ALL, 5)
 
         self.close_button = wx.Button(self, wx.ID_CANCEL, label=_("Close"))
@@ -105,8 +105,8 @@ class AskMoreDialog(wx.Dialog):
         add_event = AskMoreAddToMainEvent()
         add_event.SetText(self.last_ai_answer)
         wx.PostEvent(self.GetParent(), add_event)
-        self.add_to_main_button.Disable()
-        wx.MessageBox(_("The description has been added to the main list."), _("Description Added"), wx.OK | wx.ICON_INFORMATION, self)
+        self.add_to_main_button.Hide()
+        speak_message(_("Added."))
 
     def AppendToHistory(self, text):
         if self.history_text_ctrl.GetValue(): self.history_text_ctrl.AppendText("\n" + "-"*30 + "\n")
@@ -115,7 +115,7 @@ class AskMoreDialog(wx.Dialog):
 
     def OnProcessingStart(self):
         self.submit_button.Disable()
-        self.add_to_main_button.Disable()
+        self.add_to_main_button.Hide()
         self.last_ai_answer = ""
         self.last_response_is_error = True # Assume error until success
         self.AppendToHistory(_("AI is thinking..."))
@@ -129,11 +129,12 @@ class AskMoreDialog(wx.Dialog):
             prefix = _("Error: ")
 
         self.AppendToHistory(prefix + answer_text)
-        speak_message(prefix + answer_text, interrupt=True)
-        
+        speak_message(answer_text if not is_error else prefix + answer_text, interrupt=True)
+
         self.submit_button.Enable()
-        # Only enable the 'Add' button if it was a successful, non-error response
         if not is_error:
+            self.add_to_main_button.Show()
             self.add_to_main_button.Enable()
+            self.Layout()
         
         self.question_text_ctrl.SetFocus()

@@ -1,9 +1,11 @@
+Baseado no Omni Describer, criado por Draqoken (audioses), licença MIT.
+
 Note: explicit credit is given to ideas that were presented once and were not suggested anywhere. Because I am unable to keep an entire list of names as the contact flow is huge. I would like to personally thank everyone who suggests additions to make this application to be the best.
 
 v2.0 - Maintenance Mode Release
 
 Important Notice:
-Omni Describer is now in maintenance mode. The application has transitioned to a web platform at studio.binclusive.io, developed in partnership with Binclusive. The web platform requires no installation, no API keys, and works on all devices. New features and improvements will be focused on the web version. The desktop app will remain available and functional for those who prefer it.
+Descritudo is now in maintenance mode. The application has transitioned to a web platform at studio.binclusive.io, developed in partnership with Binclusive. The web platform requires no installation, no API keys, and works on all devices. New features and improvements will be focused on the web version. The desktop app will remain available and functional for those who prefer it.
 
 New Features:
 Video processing is now significantly faster and uses less bandwidth thanks to an improved upload system.
