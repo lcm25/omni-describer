@@ -171,7 +171,11 @@ def preprocess_video_for_ai(original_video_path, status_update_callback=None):
     should_silence = config_model.get_setting("send_silenced_video_to_ai")
 
     if not should_silence:
-        app_logger.info("No pre-processing needed for AI video. FPS is handled by Gemini videoMetadata.")
+        from .analysis_providers import active_analysis_provider
+        if active_analysis_provider(config_model.get_setting) == "local":
+            app_logger.info("No pre-processing. Local description reads frames from the file.")
+        else:
+            app_logger.info("No pre-processing needed for AI video. FPS is handled by Gemini videoMetadata.")
         return original_video_path, False
 
     try:

@@ -118,6 +118,13 @@ def get_gemini_client():
     global _GEMINI_CLIENT
     _lazy_import_gemini_sdk()
 
+    from .analysis_providers import LocalCloudBlocked, active_analysis_provider, assert_cloud_allowed
+    provider = active_analysis_provider(config_model.get_setting)
+    try:
+        assert_cloud_allowed(provider, "gemini-client")
+    except LocalCloudBlocked as exc:
+        app_logger.error("%s", exc)
+        raise GeminiAPIError(_("The description stays on this computer. Local is selected.")) from exc
     if _GEMINI_CLIENT:
         return _GEMINI_CLIENT
 

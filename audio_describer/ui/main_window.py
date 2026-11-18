@@ -460,6 +460,8 @@ class MainWindow(wx.Frame):
             if not original_video_path or not os.path.exists(original_video_path):
                 raise Exception(_("Video processing or downloading failed."))
             self.current_video_path = original_video_path
+            from ..core.analysis_providers import video_route
+            provider_id, _model = audio_describer.log_analysis_job()
 
             # --- START: SECURITY FIX ---
             # Generate the pre-processed video for AI analysis first.
@@ -480,15 +482,14 @@ class MainWindow(wx.Frame):
             else:
                 status_message = _("Asking AI to generate descriptions...")
 
-            if enable_chunking:
+            if video_route(provider_id, enable_chunking) == "gemini-chunk":
                 chunk_duration = config_model.get_setting("video_chunk_duration_seconds")
                 wx.CallAfter(self.set_processing_status, _("Processing video..."), sound_file="going.mp3")
                 all_descriptions, character_glossary, all_descriptions_token_usage = audio_describer.generate_descriptions_chunked(
                     video_for_ai, chunk_duration, user_prompt, ui_status_updater
                 )
             else:
-                from ..core.analysis_providers import active_analysis_provider
-                local = active_analysis_provider(config_model.get_setting) == "local"
+                local = provider_id == "local"
                 wx.CallAfter(self.set_processing_status, status_message, sound_file="going.mp3", speak=not local)
                 all_descriptions, character_glossary, main_usage = audio_describer.generate_descriptions_and_glossary(video_for_ai, user_prompt, ui_status_updater)
                 if main_usage:

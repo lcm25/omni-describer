@@ -47,6 +47,9 @@ def describe_frames(frames, prompt):
 
     provider_id = active_analysis_provider(config_model.get_setting)
     model = _analysis_model_name(provider_id)
+    from ..utils.logger import app_logger
+    from .analysis_providers import job_log_line
+    app_logger.info(job_log_line(provider_id, model))
     if provider_id == "local":
         from .local_model import describe_local
         return describe_local(frames, prompt)

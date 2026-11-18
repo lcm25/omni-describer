@@ -2635,6 +2635,12 @@ msgstr "O arquivo baixado não confere."
 msgid "The local model is not installed."
 msgstr "O modelo local não está instalado."
 
+msgid "The local model is not installed. Open Settings, choose Local, and download it."
+msgstr "O modelo local não está instalado. Abra Configurações, escolha Local e baixe o modelo."
+
+msgid "The description stays on this computer. Local is selected."
+msgstr "A descrição fica neste computador. Local está selecionado."
+
 msgid "Local (on this computer, offline)"
 msgstr "Local (no computador, sem internet)"
 

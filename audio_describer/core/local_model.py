@@ -207,12 +207,16 @@ def local_video_prompt():
     )
 
 
+def selected_local_model_id(model_id):
+    if model_id in {item["id"] for item in LOCAL_MODELS}:
+        return model_id
+    return LOCAL_MODELS[0]["id"]
+
+
 def describe_local(frames, prompt):
     """Run the local vision tool. Does not open a network connection."""
     from .image_describe import ImageDescribeError
-    model_id = config_model.get_setting("analysis_model") or LOCAL_MODELS[0]["id"]
-    if model_id not in {item["id"] for item in LOCAL_MODELS}:
-        model_id = LOCAL_MODELS[0]["id"]
+    model_id = selected_local_model_id(config_model.get_setting("analysis_model"))
     if not is_installed(model_id):
         raise ImageDescribeError("missing")
     model = model_by_id(model_id)

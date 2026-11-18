@@ -35,6 +35,13 @@ def _upload_and_wait_for_active(client, video_path, status_callback=None):
             status_callback(msg)
         app_logger.info(f"Upload: {msg}")
 
+    from .analysis_providers import LocalCloudBlocked, active_analysis_provider, assert_cloud_allowed
+    provider = active_analysis_provider(config_model.get_setting)
+    try:
+        assert_cloud_allowed(provider, "file-upload")
+    except LocalCloudBlocked as exc:
+        app_logger.error("%s", exc)
+        raise GeminiAPIError(_("The description stays on this computer. Local is selected.")) from exc
     _status(_("Uploading video '%s'...") % os.path.basename(video_path))
     # Work around httpx ASCII header encoding error when the file path
     # contains non-ASCII characters (e.g. Windows username with ö, ü, etc.)
@@ -134,8 +141,11 @@ def _cleanup_uploaded_file(client, video_file_obj, status_callback=None):
 
 def _analysis_model_name(provider_id):
     from .analysis_providers import CUSTOM_MODEL, FALLBACK_MODELS
+    from .local_model import selected_local_model_id
     custom = (config_model.get_setting("analysis_model_custom") or "").strip()
     selected = (config_model.get_setting("analysis_model") or "").strip()
+    if provider_id == "local":
+        return selected_local_model_id(custom if selected == CUSTOM_MODEL else selected)
     if selected == CUSTOM_MODEL and custom:
         return custom
     if selected and selected != CUSTOM_MODEL:
@@ -162,11 +172,16 @@ def _analysis_api_key(provider_id):
 
 def complete_text(system_text, user_text):
     """Text-only call to the active analysis provider. Used for shorten suggestions."""
-    from .analysis_providers import active_analysis_provider, build_request, parse_chat_text, post_json
-    provider_id = active_analysis_provider(config_model.get_setting)
+    from .analysis_providers import build_request, parse_chat_text, post_json
+    provider_id, _model = log_analysis_job()
     if provider_id == "local":
         from .local_model import describe_local
-        return describe_local([], user_text)
+        try:
+            return describe_local([], user_text)
+        except Exception as exc:
+            if str(exc) == "missing":
+                raise GeminiAPIError(_("The local model is not installed. Open Settings, choose Local, and download it.")) from exc
+            raise
     if provider_id == "gemini":
         client = gemini.get_gemini_client()
         model_name = _analysis_model_name("gemini")
@@ -201,7 +216,7 @@ def _generate_with_local(video_path, update_status):
         text = describe_local(frames, local_video_prompt())
     except ImageDescribeError as exc:
         if str(exc) == "missing":
-            raise GeminiAPIError(_("The local model is not installed.")) from exc
+            raise GeminiAPIError(_("The local model is not installed. Open Settings, choose Local, and download it.")) from exc
         raise GeminiAPIError(_("Could not describe the image.")) from exc
     return parse_timed_lines(text, duration), [], {}
 
@@ -259,8 +274,12 @@ def generate_descriptions_and_glossary(video_path, user_prompt="", status_update
         _update_status(_("Error: Video file not found: %s") % video_path)
         raise FileNotFoundError(f"Video file not found: {video_path}")
 
-    from .analysis_providers import active_analysis_provider
-    if active_analysis_provider(config_model.get_setting) != "gemini":
+    from .analysis_providers import video_route
+    provider, _model = log_analysis_job()
+    route = video_route(provider, False)
+    if route == "local":
+        return _local_video(video_path, _update_status)
+    if route != "gemini":
         return _generate_with_frame_provider(video_path, user_prompt, _update_status)
 
     video_file_obj = None
@@ -333,6 +352,15 @@ def generate_descriptions_chunked(video_path, chunk_duration_sec, user_prompt=""
     if not os.path.exists(video_path):
         _update_status(_("Error: Video file not found: %s") % video_path)
         raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    from .analysis_providers import assert_cloud_allowed, video_route
+    provider, _model = log_analysis_job()
+    route = video_route(provider, True)
+    if route == "local":
+        return _local_video(video_path, _update_status)
+    if route != "gemini-chunk":
+        return _generate_with_frame_provider(video_path, user_prompt, _update_status)
+    assert_cloud_allowed(provider, "chunked-upload")
 
     video_file_obj = None
     client = None
@@ -460,6 +488,9 @@ def generate_descriptions_chunked(video_path, chunk_duration_sec, user_prompt=""
 def ask_gemini_about_video_segment(video_segment_path, vqa_prompt_text, system_instruction_text_vqa=None):
     if not os.path.exists(video_segment_path):
         raise FileNotFoundError(f"Video segment file not found: {video_segment_path}")
+    provider, _model = log_analysis_job()
+    if provider == "local":
+        return _local_answer(video_segment_path, vqa_prompt_text)
 
     video_file_obj = None
     vqa_usage = {}
@@ -491,6 +522,10 @@ def ask_gemini_about_video_segment(video_segment_path, vqa_prompt_text, system_i
 def get_json_response_from_gemini(video_path, prompt_text, status_update_callback=None, suffix=""):
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Video file not found: {video_path}")
+    provider, _model = log_analysis_job()
+    if provider == "local":
+        text, _usage = _local_answer(video_path, prompt_text)
+        return text, {}
     video_file_obj = None
     client = None
     try:
@@ -520,6 +555,41 @@ def get_json_response_from_gemini(video_path, prompt_text, status_update_callbac
         _cleanup_uploaded_file(client, video_file_obj)
 
 # --- INTERNAL HELPERS ---
+
+def log_analysis_job():
+    """One line, no keys. Call at the start of every description."""
+    from .analysis_providers import active_analysis_provider, job_log_line
+    provider = active_analysis_provider(config_model.get_setting)
+    model = _analysis_model_name(provider)
+    app_logger.info(job_log_line(provider, model))
+    return provider, model
+
+
+def _local_answer(video_path, prompt):
+    """One local description. Never calls a cloud API."""
+    from .local_model import describe_local, is_installed
+    model_id = _analysis_model_name("local")
+    if not is_installed(model_id):
+        raise GeminiAPIError(_("The local model is not installed. Open Settings, choose Local, and download it."))
+    from .analysis_providers import extract_frames, sample_frame_times
+    from .video_processor import get_video_duration
+    frames = extract_frames(video_path, sample_frame_times(get_video_duration(video_path) or 0))
+    try:
+        text = describe_local(frames, prompt)
+    except Exception as exc:
+        if str(exc) == "missing":
+            raise GeminiAPIError(_("The local model is not installed. Open Settings, choose Local, and download it.")) from exc
+        raise GeminiAPIError(_("Could not describe the image.")) from exc
+    return text, {}
+
+
+def _local_video(video_path, update_status):
+    from .local_model import is_installed
+    _model = _analysis_model_name("local")
+    if not is_installed(_model):
+        raise GeminiAPIError(_("The local model is not installed. Open Settings, choose Local, and download it."))
+    return _generate_with_local(video_path, update_status)
+
 
 def _get_model_name():
     return gemini.current_gemini_model()

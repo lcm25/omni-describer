@@ -232,9 +232,68 @@ def active_analysis_provider(settings_getter):
     return value if any(item["id"] == value for item in ANALYSIS_PROVIDERS) else "gemini"
 
 
+class LocalCloudBlocked(RuntimeError):
+    """Local analysis must not open a cloud client or upload a file."""
+
+
+def video_route(provider_id, chunking=False):
+    """Where a video job goes. Local never uploads, even when chunking is on."""
+    if provider_id == "local":
+        return "local"
+    if provider_id != "gemini":
+        return "frames"
+    if chunking:
+        return "gemini-chunk"
+    return "gemini"
+
+
+def image_route(provider_id):
+    if provider_id == "local":
+        return "local"
+    return "cloud"
+
+
+def job_log_line(provider_id, model_id):
+    return f"Provider: {provider_id}, model: {model_id}"
+
+
+def assert_cloud_allowed(provider_id, action):
+    if provider_id == "local":
+        raise LocalCloudBlocked(f"Blocked {action}: analysis provider is local.")
+
+
+# Entry points that describe something. Each one must use video_route or image_route.
+DESCRIPTION_ENTRIES = (
+    "main_window",
+    "context_menu",
+    "command_line",
+    "clipboard",
+    "photo",
+    "sticker",
+    "chunked",
+    "redescribe",
+    "scene_explorer",
+)
+
+
+def route_entry(entry, provider_id, chunking=False):
+    if entry in ("clipboard", "photo", "sticker"):
+        return image_route(provider_id)
+    if entry == "chunked":
+        return video_route(provider_id, True)
+    return video_route(provider_id, chunking)
+
+
 def post_json(url, headers, body, timeout=120):
     import urllib.error
     import urllib.request
+    from ..models import config_model
+    provider = active_analysis_provider(config_model.get_setting)
+    try:
+        assert_cloud_allowed(provider, "http")
+    except LocalCloudBlocked as exc:
+        app_logger.error("%s", exc)
+        raise
     data = json.dumps(body).encode("utf-8")
     request = urllib.request.Request(url, data=data, headers=headers, method="POST")
     try:
