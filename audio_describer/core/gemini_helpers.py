@@ -13,6 +13,12 @@ from .. import config
 from ..utils.logger import app_logger
 from ..models import config_model
 
+from .gemini_api import (
+    GEMINI_API_VERSION,
+    gemini_client_http_options,
+    is_api_version_error,
+)
+
 # --- Retry Configuration ---
 MAX_RETRIES = 3
 INITIAL_RETRY_DELAY_SEC = 5
@@ -85,6 +91,13 @@ def reset_gemini_client():
         app_logger.info("Resetting Gemini API client due to settings change.")
         _GEMINI_CLIENT = None
 
+def explain_gemini_error(exc):
+    """A short message when Gemini rejects the call because of the API version."""
+    if is_api_version_error(exc):
+        return GeminiAPIError(_("Gemini rejected the request because of the API version. Try again."))
+    return exc
+
+
 def get_gemini_client():
     """Gets or initializes the global Gemini client."""
     global _GEMINI_CLIENT
@@ -97,8 +110,11 @@ def get_gemini_client():
     if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
         raise GeminiAPIError(_("Gemini API Key is not configured in settings."))
     try:
-        app_logger.info("Initializing genai.Client...")
-        _GEMINI_CLIENT = genai.Client(api_key=api_key)
+        app_logger.info("Initializing genai.Client on %s...", GEMINI_API_VERSION)
+        _GEMINI_CLIENT = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(**gemini_client_http_options()),
+        )
         return _GEMINI_CLIENT
     except Exception as e:
         _GEMINI_CLIENT = None
@@ -209,6 +225,9 @@ def generate_content_with_retry(client, model, contents, config, status_callback
                         break
 
             if not is_retryable or attempt == MAX_RETRIES:
+                explained = explain_gemini_error(e)
+                if explained is not e:
+                    raise explained from e
                 raise
 
             last_exception = e

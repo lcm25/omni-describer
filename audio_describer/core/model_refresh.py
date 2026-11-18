@@ -86,10 +86,10 @@ def choose_ids(provider_id, fetched, builtin, vision=True):
 
 
 def analysis_list_request(provider_id, api_key):
-    from .analysis_providers import auth_headers
+    from .analysis_providers import auth_headers, gemini_models_url
     headers = auth_headers(provider_id, api_key)
     urls = {
-        "gemini": "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
+        "gemini": gemini_models_url(),
         "openai": "https://api.openai.com/v1/models",
         "xai": "https://api.x.ai/v1/models",
         "anthropic": "https://api.anthropic.com/v1/models",
@@ -106,9 +106,10 @@ def narration_list_request(provider_id, api_key):
     if provider_id not in ("openai", "gemini", "elevenlabs"):
         return None
     headers = auth_headers(provider_id, api_key)
+    from .analysis_providers import gemini_models_url
     urls = {
         "openai": "https://api.openai.com/v1/models",
-        "gemini": "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
+        "gemini": gemini_models_url(),
         "elevenlabs": "https://api.elevenlabs.io/v1/models",
     }
     return "GET", urls[provider_id], headers

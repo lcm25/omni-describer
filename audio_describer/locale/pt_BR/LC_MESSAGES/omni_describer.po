@@ -2754,3 +2754,6 @@ msgstr "Não há notas da versão."
 
 msgid "Release notes"
 msgstr "Notas da versão"
+
+msgid "Gemini rejected the request because of the API version. Try again."
+msgstr "O Gemini recusou o pedido por causa da versão da API. Tente de novo."

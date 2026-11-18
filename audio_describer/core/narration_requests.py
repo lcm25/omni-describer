@@ -363,7 +363,8 @@ def speech_request(provider_id, model, voice, text, api_key="", language="pt-BR"
         headers["Content-Type"] = "application/ssml+xml"
         return "POST", azure_base(azure_region) + "/v1", headers, None, azure_ssml(voice, text).encode("utf-8")
     if provider_id == "gemini":
-        url = "https://generativelanguage.googleapis.com/v1beta/models/" + quote(model, safe="") + ":generateContent"
+        from .gemini_api import gemini_api_root
+        url = gemini_api_root() + "/models/" + quote(model, safe="") + ":generateContent"
         return "POST", url, headers, gemini_tts_payload(model, voice, text, style), None
     if provider_id == "elevenlabs":
         return "POST", elevenlabs_url(model, voice), headers, elevenlabs_payload(model, voice, text), None
@@ -446,7 +447,8 @@ def voice_list_request(provider_id, api_key, model=""):
     """GET/POST used to refresh the voice list. Returns method, url, headers, json or None."""
     headers = auth_headers(provider_id, api_key)
     if provider_id == "gemini":
-        return "GET", "https://generativelanguage.googleapis.com/v1beta/voices?page_size=1000", headers, None
+        from .gemini_api import gemini_api_root
+        return "GET", gemini_api_root() + "/voices?page_size=1000", headers, None
     if provider_id == "elevenlabs":
         return "GET", "https://api.elevenlabs.io/v2/voices?page_size=100", headers, None
     if provider_id == "openai":

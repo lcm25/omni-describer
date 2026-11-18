@@ -54,7 +54,13 @@ def _upload_and_wait_for_active(client, video_path, status_callback=None):
         upload_path = temp_copy.name
         app_logger.info(f"Upload: copied to ASCII-safe temp path for upload")
     try:
-        video_file_obj = client.files.upload(file=upload_path)
+        try:
+            video_file_obj = client.files.upload(file=upload_path)
+        except Exception as exc:
+            explained = gemini.explain_gemini_error(exc)
+            if explained is not exc:
+                raise explained from exc
+            raise
     finally:
         if temp_copy is not None:
             try:

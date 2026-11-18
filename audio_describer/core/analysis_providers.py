@@ -55,6 +55,7 @@ MAX_FRAMES = 8
 
 
 def endpoint_for(provider_id):
+    from .gemini_api import gemini_api_root
     return {
         "openai": "https://api.openai.com/v1/chat/completions",
         "xai": "https://api.x.ai/v1/chat/completions",
@@ -62,7 +63,7 @@ def endpoint_for(provider_id):
         "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
         "openrouter": "https://openrouter.ai/api/v1/chat/completions",
         "twelvelabs": "https://api.twelvelabs.io/v1.3/generate",
-        "gemini": "https://generativelanguage.googleapis.com/v1beta/models",
+        "gemini": gemini_api_root() + "/models",
     }[provider_id]
 
 
@@ -166,7 +167,8 @@ def twelvelabs_generate_body(video_id, prompt):
 
 
 def gemini_models_url():
-    return "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"
+    from .gemini_api import gemini_api_root
+    return gemini_api_root() + "/models?pageSize=1000"
 
 
 def filter_gemini_models(payload, require_tts=False):
