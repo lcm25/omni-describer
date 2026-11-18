@@ -170,8 +170,26 @@ def _test_voice_openai(text, settings):
                 app_logger.error(f"Could not clean up temp test file {temp_wav_path}: {e}")
 
 def synthesize_description_to_wav(text, output_wav_path):
-    engine_choice = config_model.get_setting("tts_engine")
-    app_logger.info(f"TTS synthesis requested with engine: '{engine_choice}'")
+    from .narration_engine import NarrationError, current_provider, synthesize_cloud, synthesize_piper, windows_engine_for_model
+    provider = current_provider()
+    app_logger.info(f"TTS synthesis requested with narration provider: '{provider}'")
+    if provider == "piper":
+        try:
+            return synthesize_piper(text, output_wav_path)
+        except NarrationError as exc:
+            raise TTSError(str(exc)) from exc
+    if provider not in ("windows", ""):
+        try:
+            return synthesize_cloud(provider, text, output_wav_path)
+        except NarrationError as exc:
+            raise TTSError(str(exc)) from exc
+
+    model = config_model.get_setting("narration_model") or ""
+    if provider == "windows" and model:
+        engine_choice = windows_engine_for_model(model)
+    else:
+        engine_choice = config_model.get_setting("tts_engine")
+    app_logger.info(f"Windows narration engine: '{engine_choice}'")
 
     if engine_choice == "openai":
         return _synthesize_with_openai(text, output_wav_path)

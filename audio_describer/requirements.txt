@@ -1,8 +1,6 @@
 wxPython>=4.2.5
-# For Gemini API - the app imports both the new SDK (google.genai) and the
-# legacy one (google.generativeai.types for HarmCategory/HarmBlockThreshold).
+# Gemini API. The legacy google-generativeai package is not used.
 google-genai
-google-generativeai
 accessible-output2
 yt-dlp
 # python-vlc bindings for the media player; the libvlc runtime is bundled in
