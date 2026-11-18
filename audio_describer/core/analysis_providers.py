@@ -12,6 +12,7 @@ import tempfile
 
 from ..utils.logger import app_logger
 from ..utils.system_utils import get_ffmpeg_path, run_command
+from .gemini_api import DEFAULT_GEMINI_MODEL
 
 # id, translated label msgid, whether the API accepts a video file natively
 ANALYSIS_PROVIDERS = (
@@ -26,12 +27,12 @@ ANALYSIS_PROVIDERS = (
 )
 
 FALLBACK_MODELS = {
-    "gemini": ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"),
+    "gemini": (DEFAULT_GEMINI_MODEL,),
     "openai": ("gpt-4o", "gpt-4o-mini"),
     "xai": ("grok-2-vision-1212", "grok-2-vision"),
     "anthropic": ("claude-sonnet-4-5", "claude-3-5-sonnet-latest"),
     "qwen": ("qwen-vl-max", "qwen2.5-vl-72b-instruct"),
-    "openrouter": ("google/gemini-2.5-flash", "openai/gpt-4o"),
+    "openrouter": ("google/gemini-3.8-flash", "openai/gpt-4o"),
     "twelvelabs": ("pegasus1.2",),
     "local": ("qwen25vl-3b", "qwen25vl-7b", "gemma3-4b", "gemma3-12b"),
 }

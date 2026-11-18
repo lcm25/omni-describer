@@ -522,8 +522,7 @@ def get_json_response_from_gemini(video_path, prompt_text, status_update_callbac
 # --- INTERNAL HELPERS ---
 
 def _get_model_name():
-    model_override = config_model.get_setting("gemini_model_override")
-    return model_override if model_override and model_override.strip() else config.GEMINI_MODEL_NAME
+    return gemini.current_gemini_model()
 
 def _mmss_to_total_seconds(mmss_string):
     if not isinstance(mmss_string, str) or mmss_string.count(':') != 1:

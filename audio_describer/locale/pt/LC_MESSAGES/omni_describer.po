@@ -2776,3 +2776,6 @@ msgstr "Notas da versão"
 
 msgid "Gemini rejected the request because of the API version. Try again."
 msgstr "O Gemini recusou o pedido por causa da versão da API. Tente novamente."
+
+msgid "This Gemini model is no longer available. Choose another model, or refresh the model list."
+msgstr "Este modelo do Gemini já não está disponível. Escolha outro modelo ou atualize a lista de modelos."

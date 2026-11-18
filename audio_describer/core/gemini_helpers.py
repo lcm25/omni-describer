@@ -17,6 +17,8 @@ from .gemini_api import (
     GEMINI_API_VERSION,
     gemini_client_http_options,
     is_api_version_error,
+    is_retired_model_error,
+    resolve_gemini_model,
 )
 
 # --- Retry Configuration ---
@@ -91,10 +93,23 @@ def reset_gemini_client():
         app_logger.info("Resetting Gemini API client due to settings change.")
         _GEMINI_CLIENT = None
 
+def current_gemini_model():
+    """The analysis model saved from the combo, not a retired hardcoded id."""
+    return resolve_gemini_model({
+        "analysis_model": config_model.get_setting("analysis_model") or "",
+        "analysis_model_custom": config_model.get_setting("analysis_model_custom") or "",
+        "gemini_model_override": config_model.get_setting("gemini_model_override") or "",
+    })
+
+
 def explain_gemini_error(exc):
-    """A short message when Gemini rejects the call because of the API version."""
+    """A short message. The raw API text stays in the log."""
     if is_api_version_error(exc):
+        app_logger.error("Gemini API version error: %s", exc)
         return GeminiAPIError(_("Gemini rejected the request because of the API version. Try again."))
+    if is_retired_model_error(exc):
+        app_logger.error("Gemini model is no longer available: %s", exc)
+        return GeminiAPIError(_("This Gemini model is no longer available. Choose another model, or refresh the model list."))
     return exc
 
 
@@ -153,7 +168,7 @@ def build_generation_config(system_instruction_text=None, is_json_response=False
         config_params["temperature"] = 0.2
 
     if enable_thinking:
-        model_name_to_use = config_model.get_setting("gemini_model_override") or config.GEMINI_MODEL_NAME
+        model_name_to_use = current_gemini_model()
         if "1.5" in model_name_to_use or "2.5" in model_name_to_use:
             app_logger.info(f"Model '{model_name_to_use}' supports thinking. Enabling thinking_config.")
             thinking_config = types.ThinkingConfig(

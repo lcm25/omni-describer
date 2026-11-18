@@ -2,6 +2,7 @@
 import sys
 import os
 from .version import APP_VERSION, UPDATE_REPO
+from .core.gemini_api import DEFAULT_GEMINI_MODEL
 
 # --- Base Path Calculation ---
 # This is the definitive, most robust method for finding data files.
@@ -91,8 +92,8 @@ CONTACT_EMAIL = "info@audioses.com"
 
 # API Settings (Placeholder - Store securely, not directly in code for production)
 GEMINI_API_KEY = None
-# Specify which Gemini model to use, e.g., "gemini-2.5-pro" or "gemini-2.5-flash"
-GEMINI_MODEL_NAME = "gemini-2.5-flash" 
+# Current Gemini model when the user has not chosen one. The combo can replace it.
+GEMINI_MODEL_NAME = DEFAULT_GEMINI_MODEL 
 
 # Video Processing
 SUPPORTED_VIDEO_FORMATS = "*.mp4;*.avi;*.mkv;*.webm;*.mov;*.flv;*.wmv;*.mpeg;*.mpg;*.3gp;*.ogv;*.ts;*.m4v;*.divx"

@@ -10,7 +10,10 @@ from audio_describer.core.gemini_api import (
     GEMINI_API_VERSION,
     gemini_api_root,
     gemini_client_http_options,
+    generate_content_model,
     is_api_version_error,
+    is_retired_model_error,
+    resolve_gemini_model,
 )
 from audio_describer.core.model_refresh import analysis_list_request
 from audio_describer.core.narration_requests import speech_request
@@ -59,6 +62,54 @@ def test_urls_and_new_models_use_v1beta():
     assert [item["id"] for item in listed] == ["gemini-3.8-flash"]
 
 
+class _Models:
+    def __init__(self):
+        self.model = None
+
+    def generate_content(self, model, contents, config):
+        self.model = model
+        return {"model": model, "contents": contents, "config": config}
+
+
+class _Client:
+    def __init__(self):
+        self.models = _Models()
+
+
+def test_selected_model_is_sent():
+    settings = {
+        "analysis_model": "gemini-3.8-flash",
+        "gemini_model_override": "gemini-2.5-flash",
+    }
+    assert resolve_gemini_model(settings) == "gemini-3.8-flash"
+    client = _Client()
+    generate_content_model(client, settings, contents=["descreva"], config={"json": True})
+    assert client.models.model == "gemini-3.8-flash"
+    assert resolve_gemini_model({"analysis_model": "Gemini 3.8 Flash"}) == "gemini-3.8-flash"
+    assert resolve_gemini_model({"analysis_model": "models/gemini-3.8-flash"}) == "gemini-3.8-flash"
+    assert resolve_gemini_model({}) == "gemini-3.8-flash"
+    assert resolve_gemini_model({"gemini_model_override": "gemini-2.5-flash"}) == "gemini-3.8-flash"
+    assert resolve_gemini_model({
+        "analysis_model": "__custom__",
+        "analysis_model_custom": "gemini-3.8-flash",
+    }) == "gemini-3.8-flash"
+
+
+def test_retired_model_message():
+    raw = (
+        "404 NOT_FOUND. {'error': {'message': "
+        "'This model models/gemini-2.5-flash is no longer available to new users.'}}"
+    )
+    assert is_retired_model_error(raw)
+    assert not is_retired_model_error("quota")
+    helper = (ROOT / "audio_describer" / "core" / "gemini_helpers.py").read_text(encoding="utf-8")
+    assert "is_retired_model_error" in helper
+    assert "This Gemini model is no longer available. Choose another model, or refresh the model list." in helper
+    describer = (ROOT / "audio_describer" / "core" / "audio_describer.py").read_text(encoding="utf-8")
+    assert "current_gemini_model()" in describer
+    assert 'GEMINI_MODEL_NAME' not in describer.split("def _get_model_name")[1].split("def ")[0]
+
+
 def test_api_version_error_is_short():
     raw = (
         "400 INVALID_ARGUMENT. {'error': {'message': "
@@ -75,5 +126,7 @@ def test_api_version_error_is_short():
 if __name__ == "__main__":
     test_client_is_v1beta()
     test_urls_and_new_models_use_v1beta()
+    test_selected_model_is_sent()
+    test_retired_model_message()
     test_api_version_error_is_short()
     print("gemini api version checks passed")
